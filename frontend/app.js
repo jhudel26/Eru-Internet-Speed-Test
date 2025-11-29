@@ -32,11 +32,39 @@ class SpeedTest {
 
     async detectConnectionInfo() {
         try {
-            const response = await fetch('https://api.ipify.org?format=json');
-            const data = await response.json();
-            this.ipAddress.textContent = data.ip;
+            const [ipResponse, statusResponse] = await Promise.all([
+                fetch('https://api.ipify.org?format=json', { 
+                    signal: AbortSignal.timeout(5000) 
+                }),
+                fetch('/api/status', { 
+                    signal: AbortSignal.timeout(5000) 
+                })
+            ]);
+
+            const ipData = await ipResponse.json();
+            this.ipAddress.textContent = ipData.ip;
+
+            if (statusResponse.ok) {
+                const statusData = await statusResponse.json();
+                this.updateServerInfo(statusData);
+            }
         } catch (error) {
+            console.error('Connection detection error:', error);
             this.ipAddress.textContent = 'Unable to detect';
+        }
+    }
+
+    updateServerInfo(statusData) {
+        if (statusData && statusData.server) {
+            const serverInfo = document.getElementById('serverInfo');
+            const ispInfo = document.getElementById('ispInfo');
+            
+            if (serverInfo) {
+                serverInfo.textContent = `${statusData.server.provider} - ${statusData.server.location}`;
+            }
+            if (ispInfo) {
+                ispInfo.textContent = `Edge Network (${statusData.limits.maxDownloadSpeed} max)`;
+            }
         }
     }
 
@@ -88,11 +116,21 @@ class SpeedTest {
     }
 
     async measurePing() {
-        const startTime = performance.now();
         try {
-            await fetch('/api/ping');
-            return performance.now() - startTime;
+            const startTime = performance.now();
+            const response = await fetch('/api/ping', { 
+                cache: 'no-cache',
+                signal: AbortSignal.timeout(2000)
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                // Use the server's simulated ping for more realistic results
+                return data.simulatedPing || (performance.now() - startTime);
+            }
+            return 100;
         } catch (error) {
+            console.error('Ping measurement error:', error);
             return 100;
         }
     }

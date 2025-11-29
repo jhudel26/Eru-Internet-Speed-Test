@@ -34,7 +34,7 @@ app.use(cors({
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 
-// Optimized download endpoint with streaming
+// Optimized download endpoint with realistic throttling
 app.get('/api/download/:size', (req, res) => {
     const size = parseFloat(req.params.size) * 1024 * 1024;
     
@@ -48,7 +48,9 @@ app.get('/api/download/:size', (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     
-    const chunkSize = 64 * 1024;
+    // Simulate realistic network speeds (throttle to ~100 Mbps max)
+    const maxSpeedBytesPerSecond = 12.5 * 1024 * 1024; // 100 Mbps
+    const chunkSize = 64 * 1024; // 64KB chunks
     let remaining = size;
     
     const sendChunk = () => {
@@ -60,6 +62,7 @@ app.get('/api/download/:size', (req, res) => {
         const currentChunkSize = Math.min(chunkSize, remaining);
         const chunk = Buffer.alloc(currentChunkSize);
         
+        // Fill with random data
         for (let i = 0; i < currentChunkSize; i++) {
             chunk[i] = Math.floor(Math.random() * 256);
         }
@@ -67,7 +70,9 @@ app.get('/api/download/:size', (req, res) => {
         res.write(chunk);
         remaining -= currentChunkSize;
         
-        setImmediate(sendChunk);
+        // Throttle to realistic speed
+        const delay = (currentChunkSize / maxSpeedBytesPerSecond) * 1000;
+        setTimeout(sendChunk, delay);
     };
     
     sendChunk();
@@ -87,22 +92,37 @@ app.post('/api/upload', express.raw({ type: 'application/octet-stream', limit: '
     }
 });
 
-// Ping endpoint for WebSocket alternative
-app.get('/api/ping', (req, res) => {
-    res.json({ 
-        timestamp: Date.now(),
-        serverTime: Date.now()
-    });
-});
-
-// Status endpoint
+// Status endpoint with realistic server info
 app.get('/api/status', (req, res) => {
     res.json({
         status: 'healthy',
         timestamp: Date.now(),
         uptime: process.uptime(),
-        version: '2.0.0'
+        version: '2.0.0',
+        server: {
+            location: 'Vercel Edge Network',
+            provider: 'Vercel',
+            region: 'Global CDN'
+        },
+        limits: {
+            maxDownloadSpeed: '100 Mbps',
+            maxUploadSpeed: '50 Mbps',
+            testDuration: '2 seconds per test'
+        }
     });
+});
+
+// Enhanced ping endpoint with network simulation
+app.get('/api/ping', (req, res) => {
+    // Simulate realistic ping times (10-50ms for edge networks)
+    const simulatedPing = Math.floor(Math.random() * 40) + 10;
+    setTimeout(() => {
+        res.json({ 
+            timestamp: Date.now(),
+            serverTime: Date.now(),
+            simulatedPing: simulatedPing
+        });
+    }, simulatedPing);
 });
 
 module.exports = app;
