@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eru Internet Speed Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 min-h-screen text-white">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-12">
+            <h1 class="text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                Eru Internet Speed Test
+            </h1>
+            <p class="text-xl text-gray-300">Test your internet connection speed with precision</p>
+        </header>
+
+        <main class="max-w-4xl mx-auto">
+            <!-- Speed Test Results -->
+            <section id="results" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 opacity-0 transition-opacity duration-500">
+                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-300">Download</span>
+                        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                        </svg>
+                    </div>
+                    <div class="text-3xl font-bold" id="download-speed">0</div>
+                    <div class="text-sm text-gray-400">Mbps</div>
+                </div>
+
+                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-300">Upload</span>
+                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                    </div>
+                    <div class="text-3xl font-bold" id="upload-speed">0</div>
+                    <div class="text-sm text-gray-400">Mbps</div>
+                </div>
+
+                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-300">Ping</span>
+                        <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="text-3xl font-bold" id="ping">0</div>
+                    <div class="text-sm text-gray-400">ms</div>
+                </div>
+            </section>
+
+            <!-- Test Controls -->
+            <section class="text-center">
+                <div id="test-button-container" class="mb-8">
+                    <button id="start-test" class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-full text-lg transition-all transform hover:scale-105 shadow-lg">
+                        Start Speed Test
+                    </button>
+                </div>
+
+                <!-- Progress Indicator -->
+                <div id="progress-container" class="hidden">
+                    <div class="mb-4">
+                        <div id="test-status" class="text-lg mb-2">Initializing...</div>
+                        <div class="w-full bg-white/20 rounded-full h-3 overflow-hidden">
+                            <div id="progress-bar" class="bg-gradient-to-r from-blue-400 to-purple-400 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div id="current-speed" class="text-2xl font-bold mb-4">0 Mbps</div>
+                </div>
+
+                <!-- Additional Info -->
+                <div id="additional-info" class="hidden mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div class="bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
+                        <div class="text-gray-300 mb-1">Server Location</div>
+                        <div id="server-location" class="font-semibold">Detecting...</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
+                        <div class="text-gray-300 mb-1">ISP</div>
+                        <div id="isp-info" class="font-semibold">Detecting...</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
+                        <div class="text-gray-300 mb-1">IP Address</div>
+                        <div id="ip-address" class="font-semibold">Detecting...</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
+                        <div class="text-gray-300 mb-1">Jitter</div>
+                        <div id="jitter" class="font-semibold">0 ms</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
