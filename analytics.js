@@ -21,3 +21,20 @@
     };
 })();
 
+// Load Vercel Speed Insights via CDN
+(function() {
+    // Create script element for Vercel Speed Insights
+    const speedScript = document.createElement('script');
+    speedScript.src = 'https://cdn.vercel-insights.com/v1/speed-insights/script.js';
+    speedScript.defer = true;
+    
+    // Set the script ID for Vercel Speed Insights
+    speedScript.id = 'vercel-speed-insights';
+    
+    // Add to document head
+    document.head.appendChild(speedScript);
+    
+    // Speed Insights will automatically track Core Web Vitals
+    // No additional configuration needed for basic setup
+})();
+
