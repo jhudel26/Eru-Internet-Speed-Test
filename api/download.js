@@ -9,7 +9,7 @@ module.exports = (req, res) => {
     }
     
     if (req.method === 'GET') {
-        // Extract size from URL parameter
+        // Extract size from URL parameter (from the rewrite)
         const urlParts = req.url.split('/');
         const sizeParam = urlParts[urlParts.length - 1];
         const size = parseFloat(sizeParam) * 1024 * 1024;
