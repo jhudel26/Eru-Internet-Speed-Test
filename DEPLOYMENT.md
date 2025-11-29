@@ -7,6 +7,12 @@
 - Render.com account (free tier available)
 - Git installed on your computer
 
+## Important: Package Setup
+
+This project uses a simple Node.js server (`server.js`) with **no external runtime dependencies** - only devDependencies for development. This makes deployment simpler and faster.
+
+The server uses only Node.js built-in modules (http, fs, path), so no `npm install` is needed for production, but Render will still run it for consistency.
+
 ## Step-by-Step Deployment
 
 ### 1. Prepare Your Code
@@ -78,10 +84,11 @@ git push -u origin main
 3. **Configure Settings**:
    ```
    Name: eru-speed-test
-   Branch: main
+   Branch: main (or master)
    Root Directory: (leave empty)
-   Build Command: (leave empty)
-   Publish Directory: (leave empty)
+   Build Command: npm install
+   Start Command: npm start
+   Environment: Node
    ```
 
 4. **Deploy**:
