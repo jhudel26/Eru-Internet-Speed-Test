@@ -383,8 +383,14 @@ class InternetSpeedTest {
     async testUpload() {
         this.updateStatus('Testing upload speed...', 70);
         
-        // Speedtest.net methodology: Use WebSocket or XHR with proper timing
-        // Since we can't use WebSocket easily, we'll use XHR with accurate timing
+        // Use Cloudflare's speed test endpoints for accurate upload testing
+        // Cloudflare has reliable endpoints designed for speed testing
+        const uploadEndpoints = [
+            'https://speed.cloudflare.com/__up',
+            'https://speed.cloudflare.com/__up',
+            'https://speed.cloudflare.com/__up',
+            'https://speed.cloudflare.com/__up'
+        ];
         
         // Initial quick test to determine parameters
         const initialUploadSpeed = await this.quickUploadTest();
@@ -407,7 +413,8 @@ class InternetSpeedTest {
         const uploadPromises = [];
         
         for (let i = 0; i < numConnections; i++) {
-            const promise = this.uploadConnection(testData, mainStartTime, adaptiveDuration, lastUpdateTime, i);
+            const endpoint = uploadEndpoints[i % uploadEndpoints.length];
+            const promise = this.uploadConnection(endpoint, testData, mainStartTime, adaptiveDuration, lastUpdateTime, i);
             uploadPromises.push(promise);
         }
         
@@ -424,58 +431,33 @@ class InternetSpeedTest {
         this.uploadSpeedDisplay.textContent = this.uploadSpeed.toFixed(2);
     }
 
-    async uploadConnection(testData, startTime, maxDuration, lastUpdateTime, connectionId) {
+    async uploadConnection(endpoint, testData, startTime, maxDuration, lastUpdateTime, connectionId) {
         let connectionBytes = 0;
         let lastUpdateTimeRef = lastUpdateTime;
-        
-        // Use only working upload endpoints
-        const uploadEndpoints = [
-            'https://httpbin.org/post',
-            'https://jsonplaceholder.typicode.com/posts'
-        ];
-        
-        const endpoint = uploadEndpoints[connectionId % uploadEndpoints.length];
         
         while (performance.now() - startTime < maxDuration) {
             try {
                 const uploadStartTime = performance.now();
                 
-                // Use different methods for different endpoints
-                let response;
-                if (endpoint.includes('jsonplaceholder')) {
-                    // JSONPlaceholder only accepts JSON
-                    response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ 
-                            test: 'speedtest', 
-                            connectionId: connectionId,
-                            data: Array.from(new Uint8Array(testData.slice(0, 2048))) // 2KB of data
-                        }),
-                        cache: 'no-cache',
-                        mode: 'cors'
-                    });
-                } else {
-                    // httpbin accepts binary data
-                    response = await fetch(endpoint, {
-                        method: 'POST',
-                        body: testData.slice(), // Create fresh copy
-                        cache: 'no-cache',
-                        mode: 'cors',
-                        headers: {
-                            'Content-Type': 'application/octet-stream',
-                            'X-Upload-Test': 'speedtest',
-                            'X-Connection-Id': connectionId.toString()
-                        }
-                    });
-                }
+                // Use Cloudflare's upload endpoint with proper headers
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: testData.slice(), // Create fresh copy
+                    cache: 'no-cache',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/octet-stream',
+                        'X-Upload-Test': 'speedtest',
+                        'X-Connection-Id': connectionId.toString(),
+                        'User-Agent': 'Eru-SpeedTest/1.0'
+                    },
+                    // Add timeout to prevent hanging
+                    signal: AbortSignal.timeout(10000) // 10 second timeout
+                });
                 
                 if (response.ok) {
                     // Count the actual uploaded data
-                    const uploadedSize = endpoint.includes('jsonplaceholder') ? 2048 : testData.byteLength;
-                    connectionBytes += uploadedSize;
+                    connectionBytes += testData.byteLength;
                     
                     // Update progress display
                     const currentTime = performance.now();
@@ -490,32 +472,36 @@ class InternetSpeedTest {
                     }
                 } else {
                     console.log(`Upload connection ${connectionId} failed with status:`, response.status);
-                    // Try smaller data if large upload fails
-                    if (!endpoint.includes('jsonplaceholder')) {
-                        try {
-                            const smallData = new ArrayBuffer(1024); // 1KB
-                            const smallView = new Uint8Array(smallData);
-                            for (let i = 0; i < 1024; i++) {
-                                smallView[i] = Math.floor(Math.random() * 256);
-                            }
-                            
-                            const fallbackResponse = await fetch(endpoint, {
-                                method: 'POST',
-                                body: smallData,
-                                cache: 'no-cache',
-                                mode: 'cors'
-                            });
-                            
-                            if (fallbackResponse.ok) {
-                                connectionBytes += 1024;
-                            }
-                        } catch (fallbackError) {
-                            console.log('Fallback upload failed:', fallbackError);
+                    // Try with smaller data if large upload fails
+                    try {
+                        const smallData = new ArrayBuffer(1024 * 1024); // 1MB
+                        const smallView = new Uint8Array(smallData);
+                        for (let i = 0; i < 1024 * 1024; i++) {
+                            smallView[i] = Math.floor(Math.random() * 256);
                         }
+                        
+                        const fallbackResponse = await fetch(endpoint, {
+                            method: 'POST',
+                            body: smallData,
+                            cache: 'no-cache',
+                            mode: 'cors',
+                            headers: {
+                                'Content-Type': 'application/octet-stream',
+                                'X-Upload-Test': 'speedtest-fallback'
+                            },
+                            signal: AbortSignal.timeout(5000) // 5 second timeout for fallback
+                        });
+                        
+                        if (fallbackResponse.ok) {
+                            connectionBytes += smallData.byteLength;
+                        }
+                    } catch (fallbackError) {
+                        console.log('Fallback upload failed:', fallbackError);
                     }
                 }
             } catch (error) {
                 console.log(`Upload connection ${connectionId} error:`, error);
+                // Don't break the loop, try again after a short delay
             }
             
             // Small delay between uploads to prevent overwhelming the server
@@ -602,7 +588,7 @@ class InternetSpeedTest {
     }
 
     async quickUploadTest() {
-        // Speedtest.net methodology: Quick test with smaller data
+        // Use Cloudflare's upload endpoint for quick test
         const testData = new ArrayBuffer(256 * 1024); // 256KB for quick test
         const view = new Uint8Array(testData);
         for (let i = 0; i < 256 * 1024; i++) {
@@ -612,15 +598,18 @@ class InternetSpeedTest {
         const startTime = performance.now();
         
         try {
-            // Try httpbin first (most reliable)
-            const response = await fetch('https://httpbin.org/post', {
+            // Use Cloudflare's speed test endpoint
+            const response = await fetch('https://speed.cloudflare.com/__up', {
                 method: 'POST',
                 body: testData,
                 cache: 'no-cache',
                 mode: 'cors',
                 headers: {
-                    'Content-Type': 'application/octet-stream'
-                }
+                    'Content-Type': 'application/octet-stream',
+                    'X-Upload-Test': 'quick-test',
+                    'User-Agent': 'Eru-SpeedTest/1.0'
+                },
+                signal: AbortSignal.timeout(5000) // 5 second timeout
             });
             
             if (response.ok) {
@@ -632,22 +621,24 @@ class InternetSpeedTest {
             console.log('Primary quick upload test failed:', error);
         }
         
-        // Fallback to JSONPlaceholder with smaller data
+        // Fallback to httpbin with smaller data
         try {
-            const smallData = new ArrayBuffer(32 * 1024); // 32KB
+            const smallData = new ArrayBuffer(128 * 1024); // 128KB
             const smallView = new Uint8Array(smallData);
-            for (let i = 0; i < 32 * 1024; i++) {
+            for (let i = 0; i < 128 * 1024; i++) {
                 smallView[i] = Math.floor(Math.random() * 256);
             }
             
-            const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+            const response = await fetch('https://httpbin.org/post', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    test: 'speedtest-quick',
-                    data: Array.from(new Uint8Array(smallData))
-                }),
-                cache: 'no-cache'
+                body: smallData,
+                cache: 'no-cache',
+                mode: 'cors',
+                headers: {
+                    'Content-Type': 'application/octet-stream',
+                    'X-Upload-Test': 'quick-fallback'
+                },
+                signal: AbortSignal.timeout(3000) // 3 second timeout for fallback
             });
             
             if (response.ok) {
