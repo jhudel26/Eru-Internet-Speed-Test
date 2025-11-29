@@ -383,13 +383,12 @@ class InternetSpeedTest {
     async testUpload() {
         this.updateStatus('Testing upload speed...', 70);
         
-        // Use Cloudflare's speed test endpoints for accurate upload testing
-        // Cloudflare has reliable endpoints designed for speed testing
+        // Use reliable CORS-enabled upload endpoints that actually work
         const uploadEndpoints = [
-            'https://speed.cloudflare.com/__up',
-            'https://speed.cloudflare.com/__up',
-            'https://speed.cloudflare.com/__up',
-            'https://speed.cloudflare.com/__up'
+            'https://httpbin.org/post',
+            'https://httpbin.org/post',
+            'https://httpbin.org/post',
+            'https://httpbin.org/post'
         ];
         
         // Initial quick test to determine parameters
@@ -439,7 +438,7 @@ class InternetSpeedTest {
             try {
                 const uploadStartTime = performance.now();
                 
-                // Use Cloudflare's upload endpoint with proper headers
+                // Use httpbin.org with proper headers - it's reliable and CORS-enabled
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     body: testData.slice(), // Create fresh copy
@@ -449,10 +448,11 @@ class InternetSpeedTest {
                         'Content-Type': 'application/octet-stream',
                         'X-Upload-Test': 'speedtest',
                         'X-Connection-Id': connectionId.toString(),
-                        'User-Agent': 'Eru-SpeedTest/1.0'
+                        'User-Agent': 'Eru-SpeedTest/1.0',
+                        'Accept': 'application/json'
                     },
                     // Add timeout to prevent hanging
-                    signal: AbortSignal.timeout(10000) // 10 second timeout
+                    signal: AbortSignal.timeout(15000) // 15 second timeout
                 });
                 
                 if (response.ok) {
@@ -474,9 +474,9 @@ class InternetSpeedTest {
                     console.log(`Upload connection ${connectionId} failed with status:`, response.status);
                     // Try with smaller data if large upload fails
                     try {
-                        const smallData = new ArrayBuffer(1024 * 1024); // 1MB
+                        const smallData = new ArrayBuffer(512 * 1024); // 512KB
                         const smallView = new Uint8Array(smallData);
-                        for (let i = 0; i < 1024 * 1024; i++) {
+                        for (let i = 0; i < 512 * 1024; i++) {
                             smallView[i] = Math.floor(Math.random() * 256);
                         }
                         
@@ -487,9 +487,10 @@ class InternetSpeedTest {
                             mode: 'cors',
                             headers: {
                                 'Content-Type': 'application/octet-stream',
-                                'X-Upload-Test': 'speedtest-fallback'
+                                'X-Upload-Test': 'speedtest-fallback',
+                                'User-Agent': 'Eru-SpeedTest/1.0'
                             },
-                            signal: AbortSignal.timeout(5000) // 5 second timeout for fallback
+                            signal: AbortSignal.timeout(8000) // 8 second timeout for fallback
                         });
                         
                         if (fallbackResponse.ok) {
@@ -505,7 +506,7 @@ class InternetSpeedTest {
             }
             
             // Small delay between uploads to prevent overwhelming the server
-            await this.delay(100);
+            await this.delay(150);
         }
         
         return connectionBytes;
@@ -588,7 +589,7 @@ class InternetSpeedTest {
     }
 
     async quickUploadTest() {
-        // Use Cloudflare's upload endpoint for quick test
+        // Use httpbin.org for quick upload test - reliable and CORS-enabled
         const testData = new ArrayBuffer(256 * 1024); // 256KB for quick test
         const view = new Uint8Array(testData);
         for (let i = 0; i < 256 * 1024; i++) {
@@ -598,8 +599,8 @@ class InternetSpeedTest {
         const startTime = performance.now();
         
         try {
-            // Use Cloudflare's speed test endpoint
-            const response = await fetch('https://speed.cloudflare.com/__up', {
+            // Use httpbin.org - reliable CORS-enabled endpoint
+            const response = await fetch('https://httpbin.org/post', {
                 method: 'POST',
                 body: testData,
                 cache: 'no-cache',
@@ -607,9 +608,10 @@ class InternetSpeedTest {
                 headers: {
                     'Content-Type': 'application/octet-stream',
                     'X-Upload-Test': 'quick-test',
-                    'User-Agent': 'Eru-SpeedTest/1.0'
+                    'User-Agent': 'Eru-SpeedTest/1.0',
+                    'Accept': 'application/json'
                 },
-                signal: AbortSignal.timeout(5000) // 5 second timeout
+                signal: AbortSignal.timeout(8000) // 8 second timeout
             });
             
             if (response.ok) {
@@ -621,24 +623,27 @@ class InternetSpeedTest {
             console.log('Primary quick upload test failed:', error);
         }
         
-        // Fallback to httpbin with smaller data
+        // Fallback to JSONPlaceholder with smaller data
         try {
-            const smallData = new ArrayBuffer(128 * 1024); // 128KB
+            const smallData = new ArrayBuffer(64 * 1024); // 64KB
             const smallView = new Uint8Array(smallData);
-            for (let i = 0; i < 128 * 1024; i++) {
+            for (let i = 0; i < 64 * 1024; i++) {
                 smallView[i] = Math.floor(Math.random() * 256);
             }
             
-            const response = await fetch('https://httpbin.org/post', {
+            const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
                 method: 'POST',
-                body: smallData,
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Eru-SpeedTest/1.0'
+                },
+                body: JSON.stringify({ 
+                    test: 'speedtest-quick',
+                    data: Array.from(new Uint8Array(smallData))
+                }),
                 cache: 'no-cache',
                 mode: 'cors',
-                headers: {
-                    'Content-Type': 'application/octet-stream',
-                    'X-Upload-Test': 'quick-fallback'
-                },
-                signal: AbortSignal.timeout(3000) // 3 second timeout for fallback
+                signal: AbortSignal.timeout(5000) // 5 second timeout for fallback
             });
             
             if (response.ok) {
