@@ -2,18 +2,11 @@ services:
   - type: web
     name: eru-speed-test
     env: static
-    buildCommand: |
-      yarn set version 3.6.4
-      yarn install --immutable
-      yarn build
+    buildCommand: npm install && npm run build
     staticPublishPath: .
     envVars:
       - key: NODE_VERSION
         value: 18.x
-      - key: YARN_ENABLE_GLOBAL_CACHE
-        value: 'true'
-      - key: YARN_NODE_LINKER
-        value: node-modules
     headers:
       - path: /*
         name: X-Content-Type-Options
