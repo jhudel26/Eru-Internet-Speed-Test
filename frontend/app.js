@@ -32,38 +32,79 @@ class SpeedTest {
 
     async detectConnectionInfo() {
         try {
-            const [ipResponse, statusResponse] = await Promise.all([
-                fetch('https://api.ipify.org?format=json', { 
-                    signal: AbortSignal.timeout(5000) 
-                }),
-                fetch('/api/status', { 
-                    signal: AbortSignal.timeout(5000) 
-                })
-            ]);
-
+            // Get IP address first
+            const ipResponse = await fetch('https://api.ipify.org?format=json', { 
+                signal: AbortSignal.timeout(5000) 
+            });
             const ipData = await ipResponse.json();
             this.ipAddress.textContent = ipData.ip;
 
-            if (statusResponse.ok) {
-                const statusData = await statusResponse.json();
-                this.updateServerInfo(statusData);
+            // Get server status
+            try {
+                const statusResponse = await fetch('/api/status', { 
+                    signal: AbortSignal.timeout(5000) 
+                });
+                
+                if (statusResponse.ok) {
+                    const statusData = await statusResponse.json();
+                    this.updateServerInfo(statusData);
+                }
+            } catch (error) {
+                // Fallback to default server info
+                this.updateServerInfo(null);
             }
+
+            // Get ISP information using ip-api.com (like Speedtest.net)
+            try {
+                const ispResponse = await fetch(`https://ip-api.com/json/${ipData.ip}?fields=isp,org,as,query`, {
+                    signal: AbortSignal.timeout(5000)
+                });
+                
+                if (ispResponse.ok) {
+                    const ispData = await ispResponse.json();
+                    this.updateISPInfo(ispData);
+                }
+            } catch (error) {
+                // Fallback ISP detection
+                this.updateISPInfo(null);
+            }
+
         } catch (error) {
             console.error('Connection detection error:', error);
             this.ipAddress.textContent = 'Unable to detect';
+            this.updateServerInfo(null);
+            this.updateISPInfo(null);
         }
     }
 
     updateServerInfo(statusData) {
-        if (statusData && statusData.server) {
-            const serverInfo = document.getElementById('serverInfo');
-            const ispInfo = document.getElementById('ispInfo');
-            
-            if (serverInfo) {
-                serverInfo.textContent = `${statusData.server.provider} - ${statusData.server.location}`;
+        const serverInfo = document.getElementById('serverInfo');
+        
+        if (serverInfo) {
+            if (statusData && statusData.server) {
+                serverInfo.textContent = `${statusData.server.provider} ${statusData.server.location}`;
+            } else {
+                // Fallback for Vercel deployment
+                serverInfo.textContent = 'Vercel Edge Network';
             }
-            if (ispInfo) {
-                ispInfo.textContent = `Edge Network (${statusData.limits.maxDownloadSpeed} max)`;
+        }
+    }
+
+    updateISPInfo(ispData) {
+        const ispInfo = document.getElementById('ispInfo');
+        
+        if (ispInfo) {
+            if (ispData && ispData.isp) {
+                // Show ISP name like Speedtest.net
+                ispInfo.textContent = ispData.isp;
+            } else {
+                // Fallback - detect from browser or show generic
+                const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                if (connection && connection.effectiveType) {
+                    ispInfo.textContent = `${connection.effectiveType.toUpperCase()} Network`;
+                } else {
+                    ispInfo.textContent = 'Broadband Connection';
+                }
             }
         }
     }
