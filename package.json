@@ -4,9 +4,8 @@
   "description": "Professional internet speed test web application",
   "main": "index.html",
   "scripts": {
-    "start": "npx serve -s -l $PORT",
-    "dev": "npx serve .",
-    "build": "echo 'Build complete'"
+    "start": "npx serve . -p $PORT",
+    "dev": "npx serve ."
   },
   "keywords": [
     "speed-test",
@@ -22,7 +21,6 @@
     "serve": "^14.2.1"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "node": ">=18.0.0"
   }
 }
