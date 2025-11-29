@@ -4,6 +4,7 @@ services:
     env: static
     buildCommand: npm install && npm run build
     staticPublishPath: .
+    runCommand: npm start
     envVars:
       - key: NODE_VERSION
         value: 18.x
