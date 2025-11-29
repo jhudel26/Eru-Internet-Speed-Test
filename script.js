@@ -18,9 +18,15 @@ class InternetSpeedTest {
         this.minTestSize = 1 * 1024 * 1024; // 1MB minimum
         this.maxTestSize = 100 * 1024 * 1024; // 100MB maximum
         
+        // Abort controllers for cleanup
+        this.abortControllers = [];
+        
         this.initializeElements();
         this.bindEvents();
         this.detectConnectionInfo();
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => this.cleanup());
     }
 
     initializeElements() {
@@ -28,10 +34,12 @@ class InternetSpeedTest {
         this.resultsSection = document.getElementById('results-section');
         this.progressContainer = document.getElementById('progress-container');
         this.testButtonContainer = document.getElementById('test-button-container');
+        this.testControlSection = document.getElementById('test-control-section');
         this.progressBar = document.getElementById('progress-bar');
         this.testStatus = document.getElementById('test-status');
         this.currentSpeedDisplay = document.getElementById('current-speed');
         this.progressPercentage = document.getElementById('progress-percentage');
+        this.loadingSpinner = document.getElementById('loading-spinner');
         
         // Result displays - Updated IDs from new HTML
         this.downloadSpeedDisplay = document.getElementById('download-speed');
@@ -51,10 +59,39 @@ class InternetSpeedTest {
         
         // Test phase indicators
         this.testPhases = document.querySelectorAll('.test-phase');
+        
+        // Cancel button
+        this.cancelButton = document.getElementById('cancel-test');
+        
+        // Back to test button
+        this.backToTestButton = document.getElementById('back-to-test');
     }
 
     bindEvents() {
         this.startButton.addEventListener('click', () => this.startSpeedTest());
+        if (this.cancelButton) {
+            this.cancelButton.addEventListener('click', () => this.cancelTest());
+        }
+        if (this.backToTestButton) {
+            this.backToTestButton.addEventListener('click', () => this.backToTest());
+        }
+    }
+    
+    backToTest() {
+        // Hide results section
+        this.resultsSection.classList.add('hidden');
+        // Show test control section
+        this.testControlSection.classList.remove('hidden');
+        // Reset test state
+        this.testState = 'idle';
+    }
+    
+    cancelTest() {
+        if (this.testState === 'running') {
+            this.cleanup();
+            this.hideProgress();
+            this.showError('Test cancelled by user');
+        }
     }
 
     async detectConnectionInfo() {
@@ -170,7 +207,7 @@ class InternetSpeedTest {
             // Update UI
             this.ipAddressDisplay.textContent = this.ipAddress;
             this.serverLocationDisplay.textContent = this.serverLocation;
-            this.ispInfoDisplay.textContent = this.ispInfo;
+            this.ispNameDisplay.textContent = this.ispInfo;
             
         } catch (error) {
             console.log('Connection info detection failed:', error);
@@ -182,7 +219,7 @@ class InternetSpeedTest {
             
             this.ipAddressDisplay.textContent = this.ipAddress;
             this.serverLocationDisplay.textContent = this.serverLocation;
-            this.ispInfoDisplay.textContent = this.ispInfo;
+            this.ispNameDisplay.textContent = this.ispInfo;
         }
     }
 
@@ -192,21 +229,42 @@ class InternetSpeedTest {
         this.testState = 'running';
         this.resetResults();
         this.showProgress();
+        this.abortControllers = []; // Reset abort controllers
         
         try {
             // Test sequence: Ping -> Download -> Upload
             await this.testPing();
+            if (this.testState !== 'running') return; // Check if aborted
+            
             await this.testDownload();
+            if (this.testState !== 'running') return; // Check if aborted
+            
             await this.testUpload();
+            if (this.testState !== 'running') return; // Check if aborted
             
             this.showResults();
         } catch (error) {
-            console.error('Speed test error:', error);
-            this.showError('Test failed. Please try again.');
+            if (error.name !== 'AbortError') {
+                console.error('Speed test error:', error);
+                this.showError('Test failed. Please try again.');
+            }
         } finally {
             this.testState = 'idle';
             this.hideProgress();
         }
+    }
+    
+    cleanup() {
+        // Abort all ongoing requests
+        this.abortControllers.forEach(controller => {
+            try {
+                controller.abort();
+            } catch (e) {
+                // Ignore errors during cleanup
+            }
+        });
+        this.abortControllers = [];
+        this.testState = 'idle';
     }
 
     resetResults() {
@@ -232,14 +290,23 @@ class InternetSpeedTest {
             phase.removeAttribute('data-phase');
         });
         
-        this.resultsSection.classList.add('opacity-0');
+        // Hide results completely
+        this.resultsSection.classList.add('hidden');
+        // Show test control section
+        this.testControlSection.classList.remove('hidden');
     }
 
     showProgress() {
+        // Hide results if showing
+        this.resultsSection.classList.add('hidden');
+        // Show test control section
+        this.testControlSection.classList.remove('hidden');
+        
         this.testButtonContainer.classList.add('hidden');
         this.progressContainer.classList.remove('hidden');
         this.progressBar.style.width = '0%';
         this.testStatus.textContent = 'Initializing...';
+        this.testStatus.classList.remove('text-red-400');
         this.currentSpeedDisplay.textContent = '0';
         this.progressPercentage.textContent = '0%';
         
@@ -247,15 +314,33 @@ class InternetSpeedTest {
         this.testPhases.forEach(phase => {
             phase.removeAttribute('data-phase');
         });
+        
+        // Show cancel button
+        if (this.cancelButton) {
+            this.cancelButton.style.display = 'block';
+        }
     }
 
     hideProgress() {
         this.testButtonContainer.classList.remove('hidden');
         this.progressContainer.classList.add('hidden');
+        
+        // Hide cancel button
+        if (this.cancelButton) {
+            this.cancelButton.style.display = 'none';
+        }
     }
 
     showResults() {
-        this.resultsSection.classList.remove('opacity-0');
+        // Hide test control section
+        this.testControlSection.classList.add('hidden');
+        
+        // Hide progress container
+        this.progressContainer.classList.add('hidden');
+        this.testButtonContainer.classList.add('hidden');
+        
+        // Show results section (separate page)
+        this.resultsSection.classList.remove('hidden');
         
         // Update new rate and quality displays
         this.updateRateAndQualityDisplays();
@@ -265,11 +350,19 @@ class InternetSpeedTest {
             phase.setAttribute('data-phase', 'complete');
         });
         
-        // Animate the results
-        this.animateValue(this.downloadSpeedDisplay, 0, this.downloadSpeed, 1000);
-        this.animateValue(this.uploadSpeedDisplay, 0, this.uploadSpeed, 1000);
-        this.animateValue(this.pingDisplay, 0, this.ping, 1000, 'ms');
-        this.animateValue(this.jitterDisplay, 0, this.jitter, 1000, 'ms');
+        // Animate the results with staggered timing
+        setTimeout(() => {
+            this.animateValue(this.downloadSpeedDisplay, 0, this.downloadSpeed, 1000);
+        }, 100);
+        setTimeout(() => {
+            this.animateValue(this.uploadSpeedDisplay, 0, this.uploadSpeed, 1000);
+        }, 200);
+        setTimeout(() => {
+            this.animateValue(this.pingDisplay, 0, this.ping, 1000, 'ms');
+        }, 300);
+        setTimeout(() => {
+            this.animateValue(this.jitterDisplay, 0, this.jitter, 1000, 'ms');
+        }, 400);
     }
 
     updateRateAndQualityDisplays() {
@@ -290,7 +383,8 @@ class InternetSpeedTest {
         if (speedMbps >= 25) return 'Good';
         if (speedMbps >= 10) return 'Fair';
         if (speedMbps >= 5) return 'Poor';
-        return 'Very Poor';
+        if (speedMbps > 0) return 'Very Poor';
+        return 'No Connection';
     }
 
     updateTestPhase(phase, status) {
@@ -305,7 +399,18 @@ class InternetSpeedTest {
     }
 
     updateStatus(status, progress) {
-        this.testStatus.textContent = status;
+        if (this.testState !== 'running') return; // Don't update if test stopped
+        
+        // Update status with spinner
+        if (this.loadingSpinner && progress < 100) {
+            this.testStatus.innerHTML = `<span class="inline-flex items-center">
+                <span class="animate-spin rounded-full h-4 w-4 border-2 border-blue-400 border-t-transparent mr-2"></span>
+                ${status}
+            </span>`;
+        } else {
+            this.testStatus.textContent = status;
+        }
+        
         this.progressBar.style.width = `${progress}%`;
         this.progressPercentage.textContent = `${Math.round(progress)}%`;
         
@@ -321,13 +426,23 @@ class InternetSpeedTest {
         } else if (progress >= 100) {
             this.updateTestPhase('upload', 'complete');
             this.updateTestPhase('complete', 'active');
+            // Hide spinner when complete
+            if (this.loadingSpinner) {
+                this.testStatus.innerHTML = status;
+            }
         }
     }
 
     showError(message) {
-        this.testStatus.textContent = message;
+        this.testStatus.innerHTML = `<span class="inline-flex items-center text-red-400">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            ${message}
+        </span>`;
         setTimeout(() => {
             this.hideProgress();
+            this.testStatus.classList.remove('text-red-400');
         }, 3000);
     }
 
@@ -336,36 +451,45 @@ class InternetSpeedTest {
         
         const pings = [];
         const testCount = this.pingTestCount;
+        const abortController = new AbortController();
+        this.abortControllers.push(abortController);
         
         // Use multiple endpoints for better accuracy
         const pingUrls = [
             'https://cloudflare.com/cdn-cgi/trace',
             'https://1.1.1.1/cdn-cgi/trace',
-            'https://google.com'
+            'https://www.google.com/favicon.ico'
         ];
         
-        for (let i = 0; i < testCount; i++) {
+        for (let i = 0; i < testCount && this.testState === 'running'; i++) {
             const url = pingUrls[i % pingUrls.length];
             const startTime = performance.now();
             try {
                 await fetch(url, {
                     method: 'GET',
                     cache: 'no-cache',
-                    mode: 'no-cors'
+                    mode: 'no-cors',
+                    signal: abortController.signal
                 });
                 const endTime = performance.now();
                 const ping = Math.round(endTime - startTime);
-                if (ping < 1000) { // Filter out unreasonable values
+                if (ping < 1000 && ping > 0) { // Filter out unreasonable values
                     pings.push(ping);
                 }
             } catch (error) {
+                if (error.name === 'AbortError') break;
                 // For no-cors requests, we measure the time until the request is sent
                 const endTime = performance.now();
                 const ping = Math.round(endTime - startTime);
-                if (ping < 500) { // More conservative for no-cors
+                if (ping < 500 && ping > 0) { // More conservative for no-cors
                     pings.push(ping);
                 }
             }
+            
+            // Update progress
+            const progress = 10 + ((i + 1) / testCount) * 15;
+            this.updateStatus(`Testing latency... (${i + 1}/${testCount})`, progress);
+            
             await this.delay(100); // Shorter delay for more tests
         }
         
@@ -383,7 +507,10 @@ class InternetSpeedTest {
         }
         
         this.pingDisplay.textContent = this.ping;
-        this.jitterDisplay.textContent = `${this.jitter} ms`;
+        this.jitterDisplay.textContent = this.jitter > 0 ? `${this.jitter} ms` : '0 ms';
+        
+        // Update progress to 25% after ping test
+        this.updateStatus('Ping test complete', 25);
     }
 
     async testDownload() {
@@ -423,15 +550,19 @@ class InternetSpeedTest {
         let lastUpdateTime = mainStartTime;
         
         // Parallel download threads
+        const abortController = new AbortController();
+        this.abortControllers.push(abortController);
+        
         const downloadPromises = testUrls.map(async (url, threadIndex) => {
             const threadStartTime = performance.now();
             let threadBytes = 0;
             
-            while (performance.now() - mainStartTime < adaptiveDuration) {
+            while (performance.now() - mainStartTime < adaptiveDuration && this.testState === 'running') {
                 try {
                     const response = await fetch(url, {
                         cache: 'no-cache',
-                        mode: 'cors'
+                        mode: 'cors',
+                        signal: abortController.signal
                     });
                     
                     if (!response.ok) continue;
@@ -459,6 +590,7 @@ class InternetSpeedTest {
                         }
                     }
                 } catch (error) {
+                    if (error.name === 'AbortError') break;
                     console.log('Download thread error:', error);
                     await this.delay(100);
                 }
@@ -476,6 +608,9 @@ class InternetSpeedTest {
         this.downloadSpeed = this.calculateSpeed(totalBytes, durationSeconds);
         
         this.downloadSpeedDisplay.textContent = this.downloadSpeed.toFixed(2);
+        
+        // Update progress to 75% after download test
+        this.updateStatus('Download test complete', 75);
     }
 
     async testUpload() {
@@ -538,11 +673,59 @@ class InternetSpeedTest {
         this.uploadSpeed = this.calculateSpeed(totalBytes, durationSeconds);
         
         this.uploadSpeedDisplay.textContent = this.uploadSpeed.toFixed(2);
+        
+        // Update progress to 100% after upload test
+        this.updateStatus('Upload test complete', 100);
     }
 
-    updateStatus(status, progress) {
-        this.testStatus.textContent = status;
-        this.progressBar.style.width = `${progress}%`;
+    uploadConnection(endpoint, testData, startTime, maxDuration, lastUpdateTime, connectionId) {
+        return new Promise(async (resolve) => {
+            let connectionBytes = 0;
+            const abortController = new AbortController();
+            
+            while (performance.now() - startTime < maxDuration) {
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        body: testData.slice(),
+                        cache: 'no-cache',
+                        mode: 'cors',
+                        headers: {
+                            'Content-Type': 'application/octet-stream',
+                            'X-Upload-Test': 'speedtest',
+                            'X-Connection-Id': connectionId.toString(),
+                            'User-Agent': 'Eru-SpeedTest/1.0'
+                        },
+                        signal: abortController.signal
+                    });
+                    
+                    if (response.ok) {
+                        connectionBytes += testData.byteLength;
+                        
+                        // Update progress
+                        const currentTime = performance.now();
+                        if (currentTime - lastUpdateTime > 200) {
+                            const elapsedSeconds = (currentTime - startTime) / 1000;
+                            const currentSpeed = (connectionBytes * 8) / (elapsedSeconds * 1024 * 1024);
+                            this.currentSpeedDisplay.textContent = currentSpeed.toFixed(2);
+                            
+                            const progress = 75 + ((currentTime - startTime) / maxDuration) * 25;
+                            this.updateStatus('Testing upload speed...', Math.min(progress, 100));
+                            lastUpdateTime = currentTime;
+                        }
+                    }
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        console.log(`Upload connection ${connectionId} error:`, error);
+                    }
+                    break;
+                }
+                
+                await this.delay(50);
+            }
+            
+            resolve(connectionBytes);
+        });
     }
 
     animateValue(element, start, end, duration, suffix = '') {
@@ -718,85 +901,13 @@ class InternetSpeedTest {
     // Fast.com API integration for accurate speed testing
     async fastComDownloadTest() {
         try {
-            // Get Fast.com token dynamically
-            const token = await this.getFastComToken();
-            if (!token) throw new Error('Could not get Fast.com token');
-            
-            // Create Fast.com speed test URL
-            const fastUrl = `https://api.fast.com/netflix/speedtest?https=true&token=${token}&urlCount=5`;
-            
-            const startTime = performance.now();
-            let totalBytes = 0;
-            let testDuration = 8000; // 8 seconds
-            let lastUpdateTime = startTime;
-            
-            // Make request to Fast.com API
-            const response = await fetch(fastUrl, {
-                method: 'GET',
-                cache: 'no-cache',
-                mode: 'cors',
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
-            });
-            
-            if (!response.ok) throw new Error('Fast.com API request failed');
-            
-            const data = await response.json();
-            
-            // Test against multiple Fast.com URLs
-            const testPromises = data.urls.map(async (urlObj, index) => {
-                const url = urlObj.url;
-                const threadStartTime = performance.now();
-                let threadBytes = 0;
-                
-                try {
-                    const response = await fetch(url, {
-                        cache: 'no-cache',
-                        mode: 'cors'
-                    });
-                    
-                    if (!response.ok) return 0;
-                    
-                    const reader = response.body.getReader();
-                    
-                    while (performance.now() - startTime < testDuration) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        
-                        threadBytes += value.length;
-                        totalBytes += value.length;
-                        
-                        // Update progress
-                        const currentTime = performance.now();
-                        if (currentTime - lastUpdateTime > 200) {
-                            const elapsedSeconds = (currentTime - startTime) / 1000;
-                            const currentSpeed = (totalBytes * 8) / (elapsedSeconds * 1024 * 1024);
-                            this.currentSpeedDisplay.textContent = `${currentSpeed.toFixed(2)} Mbps`;
-                            
-                            const progress = 30 + ((currentTime - startTime) / testDuration) * 40;
-                            this.updateStatus('Testing download speed...', Math.min(progress, 70));
-                            lastUpdateTime = currentTime;
-                        }
-                    }
-                    
-                    return threadBytes;
-                } catch (error) {
-                    console.log(`Fast.com thread ${index} error:`, error);
-                    return 0;
-                }
-            });
-            
-            await Promise.all(testPromises);
-            
-            const endTime = performance.now();
-            const durationSeconds = (endTime - startTime) / 1000;
-            
-            if (durationSeconds > 0 && totalBytes > 0) {
-                return this.calculateSpeed(totalBytes, durationSeconds);
-            }
-            
+            // Fast.com API is not publicly available, so we'll skip this
+            // and use the fallback method instead
             return 0;
+            
+            // Note: The original implementation attempted to use Fast.com API
+            // but it requires proper authentication and token management
+            // which is not available in a client-side implementation
         } catch (error) {
             console.log('Fast.com download test failed:', error);
             return 0;
@@ -889,24 +1000,10 @@ class InternetSpeedTest {
     }
 
     async getFastComToken() {
-        try {
-            // Visit Fast.com to get a token
-            const response = await fetch('https://fast.com/', {
-                method: 'GET',
-                cache: 'no-cache',
-                mode: 'cors'
-            });
-            
-            if (!response.ok) return null;
-            
-            // Extract token from page content (simplified approach)
-            // In a real implementation, you'd parse the HTML to find the token
-            // For now, we'll use a common token pattern
-            return 'YXNkZmFzZGxmbnNkYWZoYXNkZmhrYWxm';
-        } catch (error) {
-            console.log('Could not get Fast.com token:', error);
-            return null;
-        }
+        // Fast.com token extraction is not reliable in client-side JavaScript
+        // due to CORS and authentication requirements
+        // This method is kept for compatibility but returns null
+        return null;
     }
 }
 
