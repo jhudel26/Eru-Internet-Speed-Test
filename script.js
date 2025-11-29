@@ -1613,7 +1613,8 @@ class InternetSpeedTest {
 
     calculateBrowsingQuality() {
         // Browsing quality based on download speed, ping, and jitter
-        const speedScore = Math.min(100, (this.downloadSpeed / 100) * 100); // 100 Mbps = 100%
+        // More realistic thresholds: 25 Mbps is excellent for browsing, 50 Mbps is overkill
+        const speedScore = Math.min(100, (this.downloadSpeed / 25) * 100); // 25 Mbps = 100% (more realistic)
         const pingScore = Math.max(0, 100 - (this.ping / 2)); // 200ms = 0%
         const jitterScore = Math.max(0, 100 - (this.jitter * 2)); // 50ms = 0%
         
@@ -1623,32 +1624,33 @@ class InternetSpeedTest {
         this.browsingQualityScore.textContent = browsingScore;
         this.browsingQualityBar.style.width = `${browsingScore}%`;
         
-        // Add percentage sign if not present
-        if (!this.browsingQualityScore.textContent.includes('/')) {
-            // Already handled in HTML
-        }
-        
-        // Calculate page load time estimate
-        const pageLoadMs = Math.max(500, 2000 - (this.downloadSpeed * 10) + (this.ping * 2));
+        // Calculate page load time estimate (more realistic formula)
+        // Base time: 300ms for processing, then add network factors
+        // Typical page: ~2MB, factor in speed and latency
+        const pageSizeMB = 2; // Average modern webpage
+        const baseProcessingTime = 300; // Browser processing time
+        const downloadTime = (pageSizeMB * 8) / this.downloadSpeed * 1000; // Convert to ms
+        const networkLatency = this.ping * 2; // Round trip for resources
+        const pageLoadMs = Math.max(200, Math.min(5000, baseProcessingTime + downloadTime + networkLatency));
         this.pageLoadTime.textContent = pageLoadMs < 1000 ? `${Math.round(pageLoadMs)}ms` : `${(pageLoadMs/1000).toFixed(1)}s`;
         
-        // Video call quality
-        if (this.ping < 50 && this.jitter < 10) {
+        // Video call quality (based on real-world requirements)
+        if (this.ping < 50 && this.jitter < 10 && this.uploadSpeed >= 1) {
             this.videoCallQuality.textContent = 'Excellent';
-        } else if (this.ping < 100 && this.jitter < 20) {
+        } else if (this.ping < 100 && this.jitter < 20 && this.uploadSpeed >= 0.5) {
             this.videoCallQuality.textContent = 'Good';
-        } else if (this.ping < 150 && this.jitter < 30) {
+        } else if (this.ping < 150 && this.jitter < 30 && this.uploadSpeed >= 0.3) {
             this.videoCallQuality.textContent = 'Fair';
         } else {
             this.videoCallQuality.textContent = 'Poor';
         }
         
-        // Multi-tab performance
-        if (this.downloadSpeed >= 50) {
+        // Multi-tab performance (more realistic thresholds)
+        if (this.downloadSpeed >= 25) {
             this.multiTabPerformance.textContent = 'Excellent';
-        } else if (this.downloadSpeed >= 25) {
-            this.multiTabPerformance.textContent = 'Good';
         } else if (this.downloadSpeed >= 10) {
+            this.multiTabPerformance.textContent = 'Good';
+        } else if (this.downloadSpeed >= 5) {
             this.multiTabPerformance.textContent = 'Fair';
         } else {
             this.multiTabPerformance.textContent = 'Slow';
@@ -1657,17 +1659,20 @@ class InternetSpeedTest {
 
     calculateGamingQuality() {
         // Gaming quality heavily weighted towards ping and jitter
+        // More realistic thresholds based on actual gaming requirements
         const pingScore = Math.max(0, 100 - (this.ping / 1.5)); // 150ms = 0%
-        const jitterScore = Math.max(0, 100 - (this.jitter * 3)); // 33ms = 0%
-        const speedScore = Math.min(100, (this.downloadSpeed / 50) * 100); // 50 Mbps = 100%
+        const jitterScore = Math.max(0, 100 - (this.jitter * 2.5)); // 40ms = 0% (more lenient, was 33ms)
+        const speedScore = Math.min(100, (this.downloadSpeed / 25) * 100); // 25 Mbps = 100% (more realistic)
+        const uploadScore = Math.min(100, (this.uploadSpeed / 5) * 100); // 5 Mbps upload = 100% (important for multiplayer)
         
-        const gamingScore = Math.round((pingScore * 0.5 + jitterScore * 0.3 + speedScore * 0.2));
+        // Weighted: ping 45%, jitter 30%, download 15%, upload 10%
+        const gamingScore = Math.round((pingScore * 0.45 + jitterScore * 0.3 + speedScore * 0.15 + uploadScore * 0.1));
         
         // Update gaming quality displays
         this.gamingQualityScore.textContent = gamingScore;
         this.gamingQualityBar.style.width = `${gamingScore}%`;
         
-        // Response time classification
+        // Response time classification (industry standard thresholds)
         if (this.ping < 20) {
             this.gamingResponse.textContent = 'Instant';
         } else if (this.ping < 50) {
@@ -1680,12 +1685,12 @@ class InternetSpeedTest {
             this.gamingResponse.textContent = 'Poor';
         }
         
-        // Stability assessment
+        // Stability assessment (more realistic jitter thresholds)
         if (this.jitter < 5) {
             this.gamingStability.textContent = 'Very Stable';
         } else if (this.jitter < 15) {
             this.gamingStability.textContent = 'Stable';
-        } else if (this.jitter < 25) {
+        } else if (this.jitter < 30) {
             this.gamingStability.textContent = 'Moderate';
         } else {
             this.gamingStability.textContent = 'Unstable';
@@ -1697,13 +1702,55 @@ class InternetSpeedTest {
 
     updateGameCompatibility(gamingScore) {
         const games = [
-            { name: 'CS:GO/Valorant', ping: '<30ms', speed: '5 Mbps', compatible: this.ping < 30 && this.jitter < 10 },
-            { name: 'League of Legends', ping: '<50ms', speed: '3 Mbps', compatible: this.ping < 50 && this.jitter < 15 },
-            { name: 'Fortnite/Apex', ping: '<50ms', speed: '10 Mbps', compatible: this.ping < 50 && this.jitter < 15 },
-            { name: 'Call of Duty', ping: '<60ms', speed: '15 Mbps', compatible: this.ping < 60 && this.jitter < 20 },
-            { name: 'FIFA/EA Sports', ping: '<80ms', speed: '10 Mbps', compatible: this.ping < 80 && this.jitter < 25 },
-            { name: 'World of Warcraft', ping: '<150ms', speed: '25 Mbps', compatible: this.ping < 150 && this.downloadSpeed > 25 },
-            { name: 'Genshin Impact', ping: '<100ms', speed: '20 Mbps', compatible: this.ping < 100 && this.downloadSpeed > 20 }
+            { 
+                name: 'CS:GO/Valorant', 
+                ping: '<30ms', 
+                speed: '5 Mbps', 
+                upload: '1 Mbps',
+                compatible: this.ping < 30 && this.jitter < 10 && this.downloadSpeed >= 5 && this.uploadSpeed >= 1 
+            },
+            { 
+                name: 'League of Legends', 
+                ping: '<50ms', 
+                speed: '3 Mbps', 
+                upload: '0.5 Mbps',
+                compatible: this.ping < 50 && this.jitter < 15 && this.downloadSpeed >= 3 && this.uploadSpeed >= 0.5 
+            },
+            { 
+                name: 'Fortnite/Apex', 
+                ping: '<50ms', 
+                speed: '10 Mbps', 
+                upload: '2 Mbps',
+                compatible: this.ping < 50 && this.jitter < 15 && this.downloadSpeed >= 10 && this.uploadSpeed >= 2 
+            },
+            { 
+                name: 'Call of Duty', 
+                ping: '<60ms', 
+                speed: '15 Mbps', 
+                upload: '2 Mbps',
+                compatible: this.ping < 60 && this.jitter < 20 && this.downloadSpeed >= 15 && this.uploadSpeed >= 2 
+            },
+            { 
+                name: 'FIFA/EA Sports', 
+                ping: '<80ms', 
+                speed: '10 Mbps', 
+                upload: '1 Mbps',
+                compatible: this.ping < 80 && this.jitter < 25 && this.downloadSpeed >= 10 && this.uploadSpeed >= 1 
+            },
+            { 
+                name: 'World of Warcraft', 
+                ping: '<150ms', 
+                speed: '25 Mbps', 
+                upload: '3 Mbps',
+                compatible: this.ping < 150 && this.downloadSpeed >= 25 && this.uploadSpeed >= 3 
+            },
+            { 
+                name: 'Genshin Impact', 
+                ping: '<100ms', 
+                speed: '20 Mbps', 
+                upload: '2 Mbps',
+                compatible: this.ping < 100 && this.downloadSpeed >= 20 && this.uploadSpeed >= 2 
+            }
         ];
         
         // Update best games for this connection
@@ -1721,27 +1768,30 @@ class InternetSpeedTest {
                     <div class="w-2.5 h-2.5 rounded-full ${game.compatible ? 'bg-green-400 shadow-lg shadow-green-400/50' : 'bg-red-400'} flex-shrink-0"></div>
                     <span class="text-xs sm:text-sm text-white font-medium truncate">${game.name}</span>
                 </div>
-                <div class="flex items-center space-x-2 text-xs text-gray-400 ml-2 flex-shrink-0">
+                <div class="flex items-center space-x-1.5 sm:space-x-2 text-[10px] sm:text-xs text-gray-400 ml-2 flex-shrink-0">
                     <span class="font-mono">${game.ping}</span>
                     <span class="text-gray-600">•</span>
                     <span class="font-mono">${game.speed}</span>
+                    ${game.upload ? `<span class="text-gray-600">•</span><span class="font-mono">↑${game.upload}</span>` : ''}
                 </div>
             </div>
         `).join('');
     }
 
     calculateStreamingQuality() {
-        // Streaming quality primarily based on download speed
+        // Streaming quality primarily based on download speed, with upload for live streaming
         const speedScore = Math.min(100, (this.downloadSpeed / 25) * 100); // 25 Mbps = 100%
         const stabilityScore = Math.max(0, 100 - (this.jitter * 2)); // 50ms jitter = 0%
+        const uploadScore = Math.min(100, (this.uploadSpeed / 5) * 100); // 5 Mbps upload = 100% (for live streaming)
         
-        const streamingScore = Math.round((speedScore * 0.8 + stabilityScore * 0.2));
+        // Weighted: download 75%, stability 15%, upload 10% (upload matters for live streaming)
+        const streamingScore = Math.round((speedScore * 0.75 + stabilityScore * 0.15 + uploadScore * 0.1));
         
         // Update streaming quality displays
         this.streamingQualityScore.textContent = streamingScore;
         this.streamingQualityBar.style.width = `${streamingScore}%`;
         
-        // Maximum streaming quality
+        // Maximum streaming quality (based on industry standards)
         if (this.downloadSpeed >= 50) {
             this.maxStreamingQuality.textContent = '4K HDR';
         } else if (this.downloadSpeed >= 25) {
@@ -1756,10 +1806,10 @@ class InternetSpeedTest {
             this.maxStreamingQuality.textContent = '480p';
         }
         
-        // 4K support
+        // 4K support (industry standard: 25 Mbps minimum)
         this.fourkSupport.textContent = this.downloadSpeed >= 25 ? 'Yes' : 'No';
         
-        // Buffer-free experience
+        // Buffer-free experience (considers both speed and stability)
         if (this.downloadSpeed >= 50 && this.jitter < 10) {
             this.bufferFreeExperience.textContent = 'Excellent';
         } else if (this.downloadSpeed >= 25 && this.jitter < 20) {
