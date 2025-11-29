@@ -1,5 +1,26 @@
 {
+  "name": "eru-internet-speed-test",
+  "version": "2.0.0",
+  "description": "Professional internet speed test web application",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve . -p $PORT",
+    "dev": "npx serve ."
+  },
+  "keywords": [
+    "speed-test",
+    "internet-speed",
+    "network-analysis"
+  ],
+  "author": "Eru Networks",
+  "license": "MIT",
   "devDependencies": {
     "tailwindcss": "^4.1.17"
+  },
+  "dependencies": {
+    "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
