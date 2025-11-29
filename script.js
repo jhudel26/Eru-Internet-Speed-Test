@@ -5,9 +5,9 @@ class InternetSpeedTest {
         this.uploadSpeed = 0;
         this.ping = 0;
         this.jitter = 0;
-        this.serverLocation = 'Unknown';
-        this.ispInfo = 'Unknown';
-        this.ipAddress = 'Unknown';
+        this.serverLocation = 'Auto';
+        this.ispInfo = 'Detecting...';
+        this.ipAddress = '--';
         
         // Speedtest.net inspired settings
         this.pingTestCount = 20; // Like Speedtest.net
@@ -25,22 +25,32 @@ class InternetSpeedTest {
 
     initializeElements() {
         this.startButton = document.getElementById('start-test');
-        this.resultsSection = document.getElementById('results');
+        this.resultsSection = document.getElementById('results-section');
         this.progressContainer = document.getElementById('progress-container');
         this.testButtonContainer = document.getElementById('test-button-container');
         this.progressBar = document.getElementById('progress-bar');
         this.testStatus = document.getElementById('test-status');
         this.currentSpeedDisplay = document.getElementById('current-speed');
-        this.additionalInfo = document.getElementById('additional-info');
+        this.progressPercentage = document.getElementById('progress-percentage');
         
-        // Result displays
+        // Result displays - Updated IDs from new HTML
         this.downloadSpeedDisplay = document.getElementById('download-speed');
         this.uploadSpeedDisplay = document.getElementById('upload-speed');
         this.pingDisplay = document.getElementById('ping');
-        this.serverLocationDisplay = document.getElementById('server-location');
-        this.ispInfoDisplay = document.getElementById('isp-info');
-        this.ipAddressDisplay = document.getElementById('ip-address');
         this.jitterDisplay = document.getElementById('jitter');
+        this.serverLocationDisplay = document.getElementById('server-location');
+        this.serverDistanceDisplay = document.getElementById('server-distance');
+        this.ispNameDisplay = document.getElementById('isp-name');
+        this.ipAddressDisplay = document.getElementById('ip-address');
+        
+        // New rate and quality displays
+        this.downloadRateDisplay = document.getElementById('download-rate');
+        this.downloadQualityDisplay = document.getElementById('download-quality');
+        this.uploadRateDisplay = document.getElementById('upload-rate');
+        this.uploadQualityDisplay = document.getElementById('upload-quality');
+        
+        // Test phase indicators
+        this.testPhases = document.querySelectorAll('.test-phase');
     }
 
     bindEvents() {
@@ -205,13 +215,24 @@ class InternetSpeedTest {
         this.ping = 0;
         this.jitter = 0;
         
+        // Reset main displays
         this.downloadSpeedDisplay.textContent = '0';
         this.uploadSpeedDisplay.textContent = '0';
         this.pingDisplay.textContent = '0';
-        this.jitterDisplay.textContent = '0 ms';
+        this.jitterDisplay.textContent = '0';
+        
+        // Reset new displays
+        this.downloadRateDisplay.textContent = '0 MB/s';
+        this.downloadQualityDisplay.textContent = 'Excellent';
+        this.uploadRateDisplay.textContent = '0 MB/s';
+        this.uploadQualityDisplay.textContent = 'Good';
+        
+        // Reset test phases
+        this.testPhases.forEach(phase => {
+            phase.removeAttribute('data-phase');
+        });
         
         this.resultsSection.classList.add('opacity-0');
-        this.additionalInfo.classList.add('hidden');
     }
 
     showProgress() {
@@ -219,7 +240,13 @@ class InternetSpeedTest {
         this.progressContainer.classList.remove('hidden');
         this.progressBar.style.width = '0%';
         this.testStatus.textContent = 'Initializing...';
-        this.currentSpeedDisplay.textContent = '0 Mbps';
+        this.currentSpeedDisplay.textContent = '0';
+        this.progressPercentage.textContent = '0%';
+        
+        // Reset all test phases
+        this.testPhases.forEach(phase => {
+            phase.removeAttribute('data-phase');
+        });
     }
 
     hideProgress() {
@@ -229,13 +256,72 @@ class InternetSpeedTest {
 
     showResults() {
         this.resultsSection.classList.remove('opacity-0');
-        this.additionalInfo.classList.remove('hidden');
+        
+        // Update new rate and quality displays
+        this.updateRateAndQualityDisplays();
+        
+        // Mark all phases as complete
+        this.testPhases.forEach(phase => {
+            phase.setAttribute('data-phase', 'complete');
+        });
         
         // Animate the results
         this.animateValue(this.downloadSpeedDisplay, 0, this.downloadSpeed, 1000);
         this.animateValue(this.uploadSpeedDisplay, 0, this.uploadSpeed, 1000);
         this.animateValue(this.pingDisplay, 0, this.ping, 1000, 'ms');
         this.animateValue(this.jitterDisplay, 0, this.jitter, 1000, 'ms');
+    }
+
+    updateRateAndQualityDisplays() {
+        // Download rate and quality
+        const downloadRateMBs = (this.downloadSpeed / 8).toFixed(2);
+        this.downloadRateDisplay.textContent = `${downloadRateMBs} MB/s`;
+        this.downloadQualityDisplay.textContent = this.getSpeedQuality(this.downloadSpeed);
+        
+        // Upload rate and quality
+        const uploadRateMBs = (this.uploadSpeed / 8).toFixed(2);
+        this.uploadRateDisplay.textContent = `${uploadRateMBs} MB/s`;
+        this.uploadQualityDisplay.textContent = this.getSpeedQuality(this.uploadSpeed);
+    }
+
+    getSpeedQuality(speedMbps) {
+        if (speedMbps >= 100) return 'Excellent';
+        if (speedMbps >= 50) return 'Very Good';
+        if (speedMbps >= 25) return 'Good';
+        if (speedMbps >= 10) return 'Fair';
+        if (speedMbps >= 5) return 'Poor';
+        return 'Very Poor';
+    }
+
+    updateTestPhase(phase, status) {
+        const phaseElement = document.querySelector(`.test-phase[data-phase="${phase}"]`);
+        if (!phaseElement) return;
+        
+        if (status === 'active') {
+            phaseElement.setAttribute('data-phase', 'active');
+        } else if (status === 'complete') {
+            phaseElement.setAttribute('data-phase', 'complete');
+        }
+    }
+
+    updateStatus(status, progress) {
+        this.testStatus.textContent = status;
+        this.progressBar.style.width = `${progress}%`;
+        this.progressPercentage.textContent = `${Math.round(progress)}%`;
+        
+        // Update test phases based on progress
+        if (progress >= 0 && progress < 25) {
+            this.updateTestPhase('ping', 'active');
+        } else if (progress >= 25 && progress < 75) {
+            this.updateTestPhase('ping', 'complete');
+            this.updateTestPhase('download', 'active');
+        } else if (progress >= 75 && progress < 100) {
+            this.updateTestPhase('download', 'complete');
+            this.updateTestPhase('upload', 'active');
+        } else if (progress >= 100) {
+            this.updateTestPhase('upload', 'complete');
+            this.updateTestPhase('complete', 'active');
+        }
     }
 
     showError(message) {
@@ -246,7 +332,7 @@ class InternetSpeedTest {
     }
 
     async testPing() {
-        this.updateStatus('Testing ping...', 10);
+        this.updateStatus('Testing latency...', 10);
         
         const pings = [];
         const testCount = this.pingTestCount;
@@ -303,7 +389,19 @@ class InternetSpeedTest {
     async testDownload() {
         this.updateStatus('Testing download speed...', 30);
         
-        // Use larger, more reliable test files
+        try {
+            // Try Fast.com download test if available
+            const fastDownloadSpeed = await this.fastComDownloadTest();
+            if (fastDownloadSpeed > 0) {
+                this.downloadSpeed = fastDownloadSpeed;
+                this.downloadSpeedDisplay.textContent = this.downloadSpeed.toFixed(2);
+                return;
+            }
+        } catch (error) {
+            console.log('Fast.com download test failed, using fallback:', error);
+        }
+        
+        // Fallback to reliable download endpoints
         const testUrls = [
             'https://speed.cloudflare.com/__down?bytes=10485760', // 10MB
             'https://speed.cloudflare.com/__down?bytes=10485760',
@@ -353,7 +451,7 @@ class InternetSpeedTest {
                         if (currentTime - lastUpdateTime > 200) {
                             const elapsedSeconds = (currentTime - mainStartTime) / 1000;
                             const currentSpeed = (totalBytes * 8) / (elapsedSeconds * 1024 * 1024);
-                            this.currentSpeedDisplay.textContent = `${currentSpeed.toFixed(2)} Mbps`;
+                            this.currentSpeedDisplay.textContent = currentSpeed.toFixed(2);
                             
                             const progress = 40 + ((currentTime - mainStartTime) / adaptiveDuration) * 30;
                             this.updateStatus('Testing download speed...', Math.min(progress, 70));
@@ -381,7 +479,7 @@ class InternetSpeedTest {
     }
 
     async testUpload() {
-        this.updateStatus('Testing upload speed...', 70);
+        this.updateStatus('Testing upload speed...', 75);
         
         try {
             // Try Fast.com upload test if available
@@ -396,187 +494,55 @@ class InternetSpeedTest {
         }
         
         // Fallback to reliable CORS-enabled upload endpoints
-}
+        const uploadEndpoints = [
+            'https://httpbin.org/post',
+            'https://httpbin.org/post',
+            'https://httpbin.org/post',
+            'https://httpbin.org/post'
+        ];
+        
+        // Initial quick test to determine parameters
+        const initialUploadSpeed = await this.quickUploadTest();
+        const adaptiveDuration = this.calculateAdaptiveDuration(initialUploadSpeed);
+        
+        this.updateStatus('Testing upload speed...', 75);
+        
+        // Speedtest.net uses multiple concurrent connections
+        const numConnections = Math.min(4, Math.max(2, Math.ceil(initialUploadSpeed / 10)));
+        const chunkSize = this.calculateOptimalChunkSize(initialUploadSpeed);
+        
+        // Generate test data once and reuse
+        const testData = this.generateTestData(chunkSize);
+        
+        let totalBytes = 0;
+        const mainStartTime = performance.now();
+        let lastUpdateTime = mainStartTime;
+        
+        // Create multiple upload connections (like Speedtest.net)
+        const uploadPromises = [];
+        
+        for (let i = 0; i < numConnections; i++) {
+            const endpoint = uploadEndpoints[i % uploadEndpoints.length];
+            const promise = this.uploadConnection(endpoint, testData, mainStartTime, adaptiveDuration, lastUpdateTime, i);
+            uploadPromises.push(promise);
+        }
+        
+        // Wait for all uploads to complete
+        const results = await Promise.all(uploadPromises);
+        totalBytes = results.reduce((sum, bytes) => sum + bytes, 0);
+        
+        const endTime = performance.now();
+        const durationSeconds = (endTime - mainStartTime) / 1000;
+        
+        // Calculate final speed using Speedtest.net methodology
+        this.uploadSpeed = this.calculateSpeed(totalBytes, durationSeconds);
+        
+        this.uploadSpeedDisplay.textContent = this.uploadSpeed.toFixed(2);
+    }
 
-showProgress() {
-this.testButtonContainer.classList.add('hidden');
-this.progressContainer.classList.remove('hidden');
-this.progressBar.style.width = '0%';
-this.testStatus.textContent = 'Initializing...';
-this.currentSpeedDisplay.textContent = '0 Mbps';
-}
-
-hideProgress() {
-this.testButtonContainer.classList.remove('hidden');
-this.progressContainer.classList.add('hidden');
-}
-
-showResults() {
-this.resultsSection.classList.remove('opacity-0');
-this.additionalInfo.classList.remove('hidden');
-        
-// Animate the results
-this.animateValue(this.downloadSpeedDisplay, 0, this.downloadSpeed, 1000);
-this.animateValue(this.uploadSpeedDisplay, 0, this.uploadSpeed, 1000);
-this.animateValue(this.pingDisplay, 0, this.ping, 1000, 'ms');
-this.animateValue(this.jitterDisplay, 0, this.jitter, 1000, 'ms');
-}
-
-showError(message) {
-this.testStatus.textContent = message;
-setTimeout(() => {
-this.hideProgress();
-}, 3000);
-}
-
-async testPing() {
-this.updateStatus('Testing ping...', 10);
-        
-const pings = [];
-const testCount = this.pingTestCount;
-        
-// Use multiple endpoints for better accuracy
-const pingUrls = [
-'https://cloudflare.com/cdn-cgi/trace',
-'https://1.1.1.1/cdn-cgi/trace',
-'https://google.com'
-];
-        
-for (let i = 0; i < testCount; i++) {
-const url = pingUrls[i % pingUrls.length];
-const startTime = performance.now();
-try {
-await fetch(url, {
-method: 'GET',
-cache: 'no-cache',
-mode: 'no-cors'
-});
-const endTime = performance.now();
-const ping = Math.round(endTime - startTime);
-if (ping < 1000) { // Filter out unreasonable values
-pings.push(ping);
-}
-} catch (error) {
-// For no-cors requests, we measure the time until the request is sent
-const endTime = performance.now();
-const ping = Math.round(endTime - startTime);
-if (ping < 500) { // More conservative for no-cors
-pings.push(ping);
-}
-}
-await this.delay(100); // Shorter delay for more tests
-}
-        
-if (pings.length > 0) {
-// Sort and use interquartile mean (like Speedtest.net)
-pings.sort((a, b) => a - b);
-const trimmedPings = this.trimArray(pings, 0.25, 0.25); // Remove top/bottom 25%
-this.ping = Math.round(trimmedPings.reduce((a, b) => a + b, 0) / trimmedPings.length);
-        
-// Calculate jitter using proper methodology
-this.jitter = this.calculateJitter(pings);
-} else {
-this.ping = 999;
-this.jitter = 0;
-}
-        
-this.pingDisplay.textContent = this.ping;
-this.jitterDisplay.textContent = `${this.jitter} ms`;
-}
-
-async testDownload() {
-this.updateStatus('Testing download speed...', 30);
-        
-// Use larger, more reliable test files
-const testUrls = [
-'https://speed.cloudflare.com/__down?bytes=10485760', // 10MB
-'https://speed.cloudflare.com/__down?bytes=10485760',
-'https://speed.cloudflare.com/__down?bytes=10485760',
-'https://speed.cloudflare.com/__down?bytes=10485760'
-];
-        
-// Adaptive test duration based on connection speed
-let testDuration = this.initialTestDuration;
-let totalBytes = 0;
-let speedMeasurements = [];
-        
-// Initial quick test to determine appropriate parameters
-const initialSpeed = await this.quickDownloadTest();
-const adaptiveDuration = this.calculateAdaptiveDuration(initialSpeed);
-        
-this.updateStatus('Testing download speed...', 40);
-const mainStartTime = performance.now();
-let lastUpdateTime = mainStartTime;
-        
-// Parallel download threads
-const downloadPromises = testUrls.map(async (url, threadIndex) => {
-const threadStartTime = performance.now();
-let threadBytes = 0;
-        
-while (performance.now() - mainStartTime < adaptiveDuration) {
-try {
-const response = await fetch(url, {
-cache: 'no-cache',
-mode: 'cors'
-});
-        
-if (!response.ok) continue;
-        
-const reader = response.body.getReader();
-        
-while (true) {
-const { done, value } = await reader.read();
-if (done) break;
-        
-const chunkSize = value.length;
-threadBytes += chunkSize;
-totalBytes += chunkSize;
-        
-// Update progress every 200ms for smoother display
-const currentTime = performance.now();
-if (currentTime - lastUpdateTime > 200) {
-const elapsedSeconds = (currentTime - mainStartTime) / 1000;
-const currentSpeed = (totalBytes * 8) / (elapsedSeconds * 1024 * 1024);
-this.currentSpeedDisplay.textContent = `${currentSpeed.toFixed(2)} Mbps`;
-        
-const progress = 40 + ((currentTime - mainStartTime) / adaptiveDuration) * 30;
-this.updateStatus('Testing download speed...', Math.min(progress, 70));
-lastUpdateTime = currentTime;
-}
-}
-} catch (error) {
-console.log('Download thread error:', error);
-await this.delay(100);
-}
-}
-        
-return threadBytes;
-});
-        
-await Promise.all(downloadPromises);
-        
-const endTime = performance.now();
-const durationSeconds = (endTime - mainStartTime) / 1000;
-        
-// Calculate final speed with proper methodology
-this.downloadSpeed = this.calculateSpeed(totalBytes, durationSeconds);
-        
-this.downloadSpeedDisplay.textContent = this.downloadSpeed.toFixed(2);
-}
-
-async testUpload() {
-this.updateStatus('Testing upload speed...', 75);
-        
-const uploadEndpoints = [
-'https://httpbin.org/post',
-'https://httpbin.org/post',
-'https://httpbin.org/post',
-'https://httpbin.org/post'
-];
-        
-// Initial quick test to determine parameters
-const initialUploadSpeed = await this.quickUploadTest();
-const adaptiveDuration = this.calculateAdaptiveDuration(initialUploadSpeed);
+    updateStatus(status, progress) {
+        this.testStatus.textContent = status;
+        this.progressBar.style.width = `${progress}%`;
     }
 
     animateValue(element, start, end, duration, suffix = '') {

@@ -3,190 +3,370 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eru Internet Speed Test</title>
+    <title>Eru Internet Speed Test - Professional Network Analysis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { 
+            font-family: 'Inter', sans-serif;
+            font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+        }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
-    <!-- Animated Background -->
-    <div class="fixed inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(120,119,198,0.3),transparent_50%)]"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(255,119,198,0.3),transparent_50%)]"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_40%_20%,rgba(120,219,255,0.2),transparent_50%)]"></div>
+<body class="min-h-screen bg-black text-white overflow-hidden relative">
+    <!-- Advanced Animated Background -->
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent"></div>
+        
+        <!-- Animated Grid Pattern -->
+        <div class="absolute inset-0 opacity-30">
+            <div class="absolute inset-0" style="background-image: linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px); background-size: 50px 50px; animation: grid-move 20s linear infinite;"></div>
+        </div>
+        
+        <!-- Floating Particles -->
+        <div class="absolute inset-0 overflow-hidden">
+            <div class="absolute w-2 h-2 bg-blue-400/30 rounded-full blur-sm animate-float-1" style="top: 20%; left: 10%;"></div>
+            <div class="absolute w-3 h-3 bg-purple-400/30 rounded-full blur-md animate-float-2" style="top: 60%; left: 80%;"></div>
+            <div class="absolute w-1 h-1 bg-cyan-400/40 rounded-full blur-sm animate-float-3" style="top: 40%; left: 60%;"></div>
+            <div class="absolute w-2 h-2 bg-indigo-400/30 rounded-full blur-sm animate-float-4" style="top: 80%; left: 20%;"></div>
+            <div class="absolute w-4 h-4 bg-blue-500/20 rounded-full blur-lg animate-float-5" style="top: 10%; left: 70%;"></div>
+        </div>
     </div>
 
-    <!-- Floating Particles -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" style="top: 10%; left: 10%; animation-delay: 0s;"></div>
-        <div class="absolute w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style="top: 60%; right: 10%; animation-delay: 2s;"></div>
-        <div class="absolute w-96 h-96 bg-pink-500/20 rounded-full blur-3xl animate-pulse" style="bottom: 10%; left: 50%; animation-delay: 4s;"></div>
-    </div>
-
-    <div class="relative z-10 container mx-auto px-4 py-8 max-w-6xl">
-        <!-- Header -->
-        <header class="text-center mb-12 relative">
-            <div class="absolute inset-0 flex items-center justify-center opacity-20">
-                <div class="w-64 h-64 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur-3xl animate-pulse"></div>
-            </div>
-            <div class="relative">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-6 shadow-2xl">
-                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
+    <!-- Main Container -->
+    <div class="relative z-10 min-h-screen flex flex-col">
+        <!-- Professional Header -->
+        <header class="border-b border-white/10 backdrop-blur-xl bg-white/5">
+            <div class="container mx-auto px-6 py-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Eru Speed Test</h1>
+                            <p class="text-xs text-gray-400 font-mono">Professional Network Analysis</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-6">
+                        <div class="text-right">
+                            <p class="text-xs text-gray-500 uppercase tracking-wider font-mono">Status</p>
+                            <p class="text-sm text-green-400 font-semibold flex items-center">
+                                <span class="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
+                                Ready
+                            </p>
+                        </div>
+                    </div>
                 </div>
-                <h1 class="text-6xl md:text-7xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
-                    Eru Speed Test
-                </h1>
-                <p class="text-xl md:text-2xl text-gray-300 font-light">Lightning-fast internet speed testing</p>
             </div>
         </header>
 
-        <main class="space-y-8">
-            <!-- Speed Results -->
-            <section id="results" class="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-0 transition-all duration-700 transform translate-y-4">
-                <!-- Download Card -->
-                <div class="group relative">
-                    <div class="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                    <div class="relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl hover:shadow-green-500/20 transition-all duration-300 hover:scale-105">
-                        <div class="flex items-center justify-between mb-4">
-                            <span class="text-gray-300 font-medium">Download</span>
-                            <div class="w-12 h-12 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="text-5xl font-black mb-2 bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent" id="download-speed">0</div>
-                        <div class="text-sm text-gray-400 uppercase tracking-wider">Mbps</div>
-                    </div>
-                </div>
-
-                <!-- Upload Card -->
-                <div class="group relative">
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                    <div class="relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 hover:scale-105">
-                        <div class="flex items-center justify-between mb-4">
-                            <span class="text-gray-300 font-medium">Upload</span>
-                            <div class="w-12 h-12 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="text-5xl font-black mb-2 bg-gradient-to-r from-blue-400 to-cyan-500 bg-clip-text text-transparent" id="upload-speed">0</div>
-                        <div class="text-sm text-gray-400 uppercase tracking-wider">Mbps</div>
-                    </div>
-                </div>
-
-                <!-- Ping Card -->
-                <div class="group relative">
-                    <div class="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                    <div class="relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl hover:shadow-yellow-500/20 transition-all duration-300 hover:scale-105">
-                        <div class="flex items-center justify-between mb-4">
-                            <span class="text-gray-300 font-medium">Ping</span>
-                            <div class="w-12 h-12 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="text-5xl font-black mb-2 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent" id="ping">0</div>
-                        <div class="text-sm text-gray-400 uppercase tracking-wider">ms</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Test Controls -->
-            <section class="text-center">
-                <div id="test-button-container" class="mb-8">
-                    <button id="start-test" class="group relative inline-flex items-center justify-center px-12 py-6 text-xl font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-2xl hover:shadow-blue-500/25 transform transition-all duration-300 hover:scale-105 active:scale-95">
-                        <span class="relative z-10 flex items-center gap-3">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            Start Speed Test
-                        </span>
-                        <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                    </button>
-                </div>
-
-                <!-- Progress Indicator -->
-                <div id="progress-container" class="hidden">
-                    <div class="max-w-2xl mx-auto space-y-6">
-                        <div class="text-center">
-                            <div id="test-status" class="text-2xl font-semibold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Initializing...</div>
-                            <div class="relative">
-                                <div class="w-full bg-white/10 rounded-full h-4 overflow-hidden backdrop-blur-sm border border-white/20">
-                                    <div id="progress-bar" class="h-full rounded-full transition-all duration-500 ease-out bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 relative overflow-hidden">
-                                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 transform translate-x-full animate-shimmer"></div>
+        <!-- Main Content -->
+        <main class="flex-1 container mx-auto px-6 py-12">
+            <!-- Speed Results Section -->
+            <div id="results-section" class="mb-12 opacity-0 transition-all duration-700">
+                <!-- Primary Metrics Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                    <!-- Download Speed Card -->
+                    <div class="group relative bg-gradient-to-br from-slate-900/50 to-slate-800/30 backdrop-blur-xl border border-white/10 rounded-3xl p-8 hover:border-blue-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10">
+                        <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/25">
+                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                                        </svg>
                                     </div>
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-white">Download Speed</h3>
+                                        <p class="text-xs text-gray-400 font-mono">Inbound Bandwidth</p>
+                                    </div>
+                                </div>
+                                <div class="text-xs px-3 py-1 bg-green-500/20 text-green-400 rounded-full font-mono border border-green-500/30">
+                                    PRIMARY
+                                </div>
+                            </div>
+                            
+
+                            <div class="flex items-baseline space-x-4">
+                                <div class="text-6xl font-black bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent tabular-nums" id="download-speed">0</div>
+                                <div class="text-sm text-gray-400 uppercase tracking-wider font-mono">Mbps</div>
+                            </div>
+                            
+
+                            <div class="mt-6 grid grid-cols-2 gap-4">
+                                <div class="bg-white/5 rounded-xl p-3">
+                                    <p class="text-xs text-gray-500 uppercase tracking-wider font-mono mb-1">Rate</p>
+                                    <p class="text-sm font-semibold text-gray-300" id="download-rate">0 MB/s</p>
+                                </div>
+                                <div class="bg-white/5 rounded-xl p-3">
+                                    <p class="text-xs text-gray-500 uppercase tracking-wider font-mono mb-1">Quality</p>
+                                    <p class="text-sm font-semibold text-green-400" id="download-quality">Excellent</p>
                                 </div>
                             </div>
                         </div>
-                        <div class="text-center">
-                            <div id="current-speed" class="text-4xl font-black bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">0 Mbps</div>
+                    </div>
+
+                    <!-- Upload Speed Card -->
+                    <div class="group relative bg-gradient-to-br from-slate-900/50 to-slate-800/30 backdrop-blur-xl border border-white/10 rounded-3xl p-8 hover:border-purple-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/10">
+                        <div class="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/25">
+                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-white">Upload Speed</h3>
+                                        <p class="text-xs text-gray-400 font-mono">Outbound Bandwidth</p>
+                                    </div>
+                                </div>
+                                <div class="text-xs px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full font-mono border border-purple-500/30">
+                                    SECONDARY
+                                </div>
+                            </div>
+                            
+
+                            <div class="flex items-baseline space-x-4">
+                                <div class="text-6xl font-black bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent tabular-nums" id="upload-speed">0</div>
+                                <div class="text-sm text-gray-400 uppercase tracking-wider font-mono">Mbps</div>
+                            </div>
+                            
+
+                            <div class="mt-6 grid grid-cols-2 gap-4">
+                                <div class="bg-white/5 rounded-xl p-3">
+                                    <p class="text-xs text-gray-500 uppercase tracking-wider font-mono mb-1">Rate</p>
+                                    <p class="text-sm font-semibold text-gray-300" id="upload-rate">0 MB/s</p>
+                                </div>
+                                <div class="bg-white/5 rounded-xl p-3">
+                                    <p class="text-xs text-gray-500 uppercase tracking-wider font-mono mb-1">Quality</p>
+                                    <p class="text-sm font-semibold text-purple-400" id="upload-quality">Good</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Additional Info -->
-                <div id="additional-info" class="hidden mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="group bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-lg flex items-center justify-center">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                </svg>
-                            </div>
-                            <span class="text-gray-400 text-sm uppercase tracking-wider">Location</span>
-                        </div>
-                        <div id="server-location" class="text-lg font-semibold">Detecting...</div>
-                    </div>
-
-                    <div class="group bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="w-8 h-8 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-lg flex items-center justify-center">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                </svg>
-                            </div>
-                            <span class="text-gray-400 text-sm uppercase tracking-wider">ISP</span>
-                        </div>
-                        <div id="isp-info" class="text-lg font-semibold">Detecting...</div>
-                    </div>
-
-                    <div class="group bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="w-8 h-8 bg-gradient-to-r from-green-400 to-emerald-400 rounded-lg flex items-center justify-center">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                </svg>
-                            </div>
-                            <span class="text-gray-400 text-sm uppercase tracking-wider">IP Address</span>
-                        </div>
-                        <div id="ip-address" class="text-lg font-semibold">Detecting...</div>
-                    </div>
-
-                    <div class="group bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-lg flex items-center justify-center">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- Connection Metrics -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+                    <!-- Ping Card -->
+                    <div class="bg-gradient-to-br from-slate-900/50 to-slate-800/30 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:border-cyan-500/30 transition-all duration-300">
+                        <div class="flex items-center space-x-3 mb-4">
+                            <div class="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                                 </svg>
                             </div>
-                            <span class="text-gray-400 text-sm uppercase tracking-wider">Jitter</span>
+                            <div>
+                                <h4 class="text-sm font-semibold text-white">Latency</h4>
+                                <p class="text-xs text-gray-400 font-mono">Response Time</p>
+                            </div>
                         </div>
-                        <div id="jitter" class="text-lg font-semibold">0 ms</div>
+                        <div class="text-3xl font-bold text-cyan-400 tabular-nums" id="ping">0</div>
+                        <div class="text-xs text-gray-500 font-mono">milliseconds</div>
+                    </div>
+
+                    <!-- Jitter Card -->
+                    <div class="bg-gradient-to-br from-slate-900/50 to-slate-800/30 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:border-orange-500/30 transition-all duration-300">
+                        <div class="flex items-center space-x-3 mb-4">
+                            <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-white">Jitter</h4>
+                                <p class="text-xs text-gray-400 font-mono">Variance</p>
+                            </div>
+                        </div>
+                        <div class="text-3xl font-bold text-orange-400 tabular-nums" id="jitter">0</div>
+                        <div class="text-xs text-gray-500 font-mono">milliseconds</div>
+                    </div>
+
+                    <!-- Server Info Card -->
+                    <div class="bg-gradient-to-br from-slate-900/50 to-slate-800/30 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:border-indigo-500/30 transition-all duration-300">
+                        <div class="flex items-center space-x-3 mb-4">
+                            <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-white">Server</h4>
+                                <p class="text-xs text-gray-400 font-mono">Location</p>
+                            </div>
+                        </div>
+                        <div class="text-sm font-semibold text-indigo-400" id="server-location">Auto</div>
+                        <div class="text-xs text-gray-500 font-mono" id="server-distance">-- km</div>
+                    </div>
+
+                    <!-- ISP Info Card -->
+                    <div class="bg-gradient-to-br from-slate-900/50 to-slate-800/30 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:border-teal-500/30 transition-all duration-300">
+                        <div class="flex items-center space-x-3 mb-4">
+                            <div class="w-10 h-10 bg-gradient-to-br from-teal-500 to-green-600 rounded-xl flex items-center justify-center">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-white">ISP</h4>
+                                <p class="text-xs text-gray-400 font-mono">Provider</p>
+                            </div>
+                        </div>
+                        <div class="text-sm font-semibold text-teal-400" id="isp-name">Detecting...</div>
+                        <div class="text-xs text-gray-500 font-mono" id="ip-address">--</div>
                     </div>
                 </div>
-            </section>
+            </div>
+
+            <!-- Test Control Section -->
+            <div id="test-control-section" class="max-w-2xl mx-auto">
+                <!-- Start Test Button -->
+                <div id="test-button-container" class="text-center">
+                    <div class="bg-gradient-to-br from-slate-900/50 to-slate-800/30 backdrop-blur-xl border border-white/10 rounded-3xl p-12">
+                        <div class="mb-8">
+                            <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-500/25">
+                                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </div>
+                            <h2 class="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Ready to Test</h2>
+                            <p class="text-gray-400 max-w-md mx-auto mb-8">
+                                Measure your internet connection speed with professional accuracy using Fast.com and Speedtest.net infrastructure
+                            </p>
+                        </div>
+                        
+
+                        <button id="start-test" class="group relative px-12 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-500 hover:to-purple-500 transition-all duration-300 transform hover:scale-105 shadow-2xl shadow-blue-500/25 hover:shadow-blue-500/40">
+                            <span class="relative z-10 flex items-center space-x-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Start Speed Test</span>
+                            </span>
+                            <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
+                        </button>
+                        
+
+                        <div class="mt-8 flex items-center justify-center space-x-8 text-xs text-gray-500">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                <span>Fast.com API</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                                <span>Speedtest.net Method</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                                <span>Global CDN</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Section -->
+                <div id="progress-container" class="hidden">
+                    <div class="bg-gradient-to-br from-slate-900/50 to-slate-800/30 backdrop-blur-xl border border-white/10 rounded-3xl p-8">
+                        <!-- Current Speed Display -->
+                        <div class="text-center mb-8">
+                            <div class="text-6xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tabular-nums" id="current-speed">0</div>
+                            <div class="text-sm text-gray-400 uppercase tracking-wider font-mono mb-2">Mbps</div>
+                            <div class="text-lg font-semibold text-white" id="test-status">Initializing...</div>
+                        </div>
+                        
+
+                        <!-- Progress Bar -->
+                        <div class="mb-8">
+                            <div class="w-full bg-white/10 rounded-full h-3 overflow-hidden backdrop-blur-sm">
+                                <div id="progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-300 ease-out relative overflow-hidden">
+                                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-shimmer"></div>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex justify-between text-xs text-gray-500 font-mono">
+                                <span>0%</span>
+                                <span id="progress-percentage">0%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Test Phases -->
+                        <div class="grid grid-cols-4 gap-4">
+                            <div class="test-phase" data-phase="ping">
+                                <div class="text-center">
+                                    <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="text-xs text-gray-500 font-mono">Ping</div>
+                                </div>
+                            </div>
+                            <div class="test-phase" data-phase="download">
+                                <div class="text-center">
+                                    <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="text-xs text-gray-500 font-mono">Download</div>
+                                </div>
+                            </div>
+                            <div class="test-phase" data-phase="upload">
+                                <div class="text-center">
+                                    <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="text-xs text-gray-500 font-mono">Upload</div>
+                                </div>
+                            </div>
+                            <div class="test-phase" data-phase="complete">
+                                <div class="text-center">
+                                    <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="text-xs text-gray-500 font-mono">Complete</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
+
+        <!-- Professional Footer -->
+        <footer class="border-t border-white/10 backdrop-blur-xl bg-white/5 mt-auto">
+            <div class="container mx-auto px-6 py-6">
+                <div class="flex flex-col md:flex-row items-center justify-between">
+                    <div class="flex items-center space-x-6 mb-4 md:mb-0">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                            <span class="text-xs text-gray-400 font-mono">System Status: Operational</span>
+                        </div>
+                        <div class="text-xs text-gray-500 font-mono">Version 2.0</div>
+                    </div>
+                    <div class="flex items-center space-x-6 text-xs text-gray-500">
+                        <span class="font-mono">Powered by Fast.com & Speedtest.net</span>
+                        <span class="text-gray-600">•</span>
+                        <span class="font-mono">© 2024 Eru Networks</span>
+                    </div>
+                </div>
+            </div>
+        </footer>
     </div>
 
     <script src="script.js"></script>
