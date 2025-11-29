@@ -6,4 +6,15 @@ node_modules/
 dist/
 build/
 .cache/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
 
+# OS files
+Thumbs.db
+desktop.ini
+
+# Package lock (optional - some prefer to commit it)
+# package-lock.json
