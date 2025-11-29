@@ -25,6 +25,9 @@ class InternetSpeedTest {
         this.bindEvents();
         this.detectConnectionInfo();
         
+        // Check if results should be loaded from URL (shared link)
+        this.loadResultsFromURL();
+        
         // Cleanup on page unload
         window.addEventListener('beforeunload', () => this.cleanup());
     }
@@ -86,6 +89,19 @@ class InternetSpeedTest {
         
         // Back to test button
         this.backToTestButton = document.getElementById('back-to-test');
+        
+        // Share functionality elements
+        this.shareButton = document.getElementById('share-results');
+        this.shareModal = document.getElementById('share-modal');
+        this.closeShareModal = document.getElementById('close-share-modal');
+        this.shareTextInput = document.getElementById('share-text-input');
+        this.shareLinkInput = document.getElementById('share-link-input');
+        this.copyTextBtn = document.getElementById('copy-text-btn');
+        this.copyLinkBtn = document.getElementById('copy-link-btn');
+        this.shareTwitterBtn = document.getElementById('share-twitter');
+        this.shareFacebookBtn = document.getElementById('share-facebook');
+        this.shareWhatsAppBtn = document.getElementById('share-whatsapp');
+        this.shareSuccess = document.getElementById('share-success');
     }
 
     bindEvents() {
@@ -96,6 +112,45 @@ class InternetSpeedTest {
         if (this.backToTestButton) {
             this.backToTestButton.addEventListener('click', () => this.backToTest());
         }
+        
+        // Share functionality
+        if (this.shareButton) {
+            this.shareButton.addEventListener('click', () => this.openShareModal());
+        }
+        if (this.closeShareModal) {
+            this.closeShareModal.addEventListener('click', () => this.closeShareModalFunc());
+        }
+        if (this.copyTextBtn) {
+            this.copyTextBtn.addEventListener('click', () => this.copyShareText());
+        }
+        if (this.copyLinkBtn) {
+            this.copyLinkBtn.addEventListener('click', () => this.copyShareLink());
+        }
+        if (this.shareTwitterBtn) {
+            this.shareTwitterBtn.addEventListener('click', () => this.shareToTwitter());
+        }
+        if (this.shareFacebookBtn) {
+            this.shareFacebookBtn.addEventListener('click', () => this.shareToFacebook());
+        }
+        if (this.shareWhatsAppBtn) {
+            this.shareWhatsAppBtn.addEventListener('click', () => this.shareToWhatsApp());
+        }
+        
+        // Close modal on outside click
+        if (this.shareModal) {
+            this.shareModal.addEventListener('click', (e) => {
+                if (e.target === this.shareModal) {
+                    this.closeShareModalFunc();
+                }
+            });
+        }
+        
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.shareModal && !this.shareModal.classList.contains('hidden')) {
+                this.closeShareModalFunc();
+            }
+        });
     }
     
     backToTest() {
@@ -1863,6 +1918,154 @@ class InternetSpeedTest {
                 bar.style.width = `${score}%`;
             }
         });
+    }
+
+    // Share Functionality Methods
+    openShareModal() {
+        if (!this.shareModal) return;
+        
+        // Generate share text and link
+        const shareText = this.generateShareText();
+        const shareLink = this.generateShareLink();
+        
+        // Update inputs
+        if (this.shareTextInput) {
+            this.shareTextInput.value = shareText;
+        }
+        if (this.shareLinkInput) {
+            this.shareLinkInput.value = shareLink;
+        }
+        
+        // Show modal
+        this.shareModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+
+    closeShareModalFunc() {
+        if (!this.shareModal) return;
+        this.shareModal.classList.add('hidden');
+        document.body.style.overflow = ''; // Restore scrolling
+        if (this.shareSuccess) {
+            this.shareSuccess.classList.add('hidden');
+        }
+    }
+
+    generateShareText() {
+        const timestamp = new Date().toLocaleString();
+        const downloadRate = (this.downloadSpeed / 8).toFixed(2);
+        const uploadRate = (this.uploadSpeed / 8).toFixed(2);
+        
+        return `🚀 Internet Speed Test Results
+
+📥 Download: ${this.downloadSpeed.toFixed(2)} Mbps (${downloadRate} MB/s)
+📤 Upload: ${this.uploadSpeed.toFixed(2)} Mbps (${uploadRate} MB/s)
+⚡ Ping: ${this.ping} ms
+📊 Jitter: ${this.jitter} ms
+
+🌐 ISP: ${this.ispInfo}
+📍 Server: ${this.serverLocation}
+🕐 Tested: ${timestamp}
+
+Test your speed at: ${window.location.origin}`;
+    }
+
+    generateShareLink() {
+        // Encode results in URL parameters
+        const params = new URLSearchParams({
+            d: this.downloadSpeed.toFixed(2),
+            u: this.uploadSpeed.toFixed(2),
+            p: this.ping.toString(),
+            j: this.jitter.toString(),
+            t: Date.now().toString()
+        });
+        
+        return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    }
+
+    async copyShareText() {
+        if (!this.shareTextInput) return;
+        
+        try {
+            await navigator.clipboard.writeText(this.shareTextInput.value);
+            this.showShareSuccess();
+        } catch (err) {
+            // Fallback for older browsers
+            this.shareTextInput.select();
+            document.execCommand('copy');
+            this.showShareSuccess();
+        }
+    }
+
+    async copyShareLink() {
+        if (!this.shareLinkInput) return;
+        
+        try {
+            await navigator.clipboard.writeText(this.shareLinkInput.value);
+            this.showShareSuccess();
+        } catch (err) {
+            // Fallback for older browsers
+            this.shareLinkInput.select();
+            document.execCommand('copy');
+            this.showShareSuccess();
+        }
+    }
+
+    showShareSuccess() {
+        if (!this.shareSuccess) return;
+        
+        this.shareSuccess.classList.remove('hidden');
+        setTimeout(() => {
+            this.shareSuccess.classList.add('hidden');
+        }, 2000);
+    }
+
+    shareToTwitter() {
+        const text = encodeURIComponent(this.generateShareText());
+        const url = `https://x.com/intent/tweet?text=${text}`;
+        window.open(url, '_blank', 'width=550,height=420');
+    }
+
+    shareToFacebook() {
+        const url = encodeURIComponent(this.generateShareLink());
+        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+        window.open(facebookUrl, '_blank', 'width=550,height=420');
+    }
+
+    shareToWhatsApp() {
+        const text = encodeURIComponent(this.generateShareText());
+        const url = `https://wa.me/?text=${text}`;
+        window.open(url, '_blank');
+    }
+
+    // Load results from URL parameters (for shared links)
+    loadResultsFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('d') && params.has('u') && params.has('p')) {
+            this.downloadSpeed = parseFloat(params.get('d')) || 0;
+            this.uploadSpeed = parseFloat(params.get('u')) || 0;
+            this.ping = parseInt(params.get('p')) || 0;
+            this.jitter = parseInt(params.get('j')) || 0;
+            
+            // Update displays
+            if (this.downloadSpeedDisplay) {
+                this.downloadSpeedDisplay.textContent = this.downloadSpeed.toFixed(2);
+            }
+            if (this.uploadSpeedDisplay) {
+                this.uploadSpeedDisplay.textContent = this.uploadSpeed.toFixed(2);
+            }
+            if (this.pingDisplay) {
+                this.pingDisplay.textContent = this.ping;
+            }
+            if (this.jitterDisplay) {
+                this.jitterDisplay.textContent = this.jitter > 0 ? `${this.jitter} ms` : '0 ms';
+            }
+            
+            // Show results
+            this.showResults();
+            
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
     }
 
 
