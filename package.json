@@ -4,8 +4,8 @@
   "description": "Professional internet speed test web application",
   "main": "index.html",
   "scripts": {
-    "start": "npx serve . -p $PORT",
-    "dev": "npx serve ."
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "keywords": [
     "speed-test",
@@ -17,9 +17,7 @@
   "devDependencies": {
     "tailwindcss": "^4.1.17"
   },
-  "dependencies": {
-    "serve": "^14.2.1"
-  },
+  "dependencies": {},
   "engines": {
     "node": ">=18.0.0"
   }
