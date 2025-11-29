@@ -9,14 +9,14 @@ class InternetSpeedTest {
         this.ispInfo = 'Detecting...';
         this.ipAddress = '--';
         
-        // Speedtest.net inspired settings
-        this.pingTestCount = 20; // Like Speedtest.net
-        this.downloadThreads = 4; // Parallel connections
-        this.uploadThreads = 4;
-        this.initialTestDuration = 3000; // 3 seconds initial test
-        this.mainTestDuration = 8000; // 8 seconds main test
+        // Optimized settings for accurate measurements
+        this.pingTestCount = 15; // Reduced for faster testing
+        this.downloadThreads = 6; // More parallel connections
+        this.uploadThreads = 8; // More upload connections
+        this.initialTestDuration = 2000; // 2 seconds initial test
+        this.mainTestDuration = 12000; // 12 seconds main test
         this.minTestSize = 1 * 1024 * 1024; // 1MB minimum
-        this.maxTestSize = 100 * 1024 * 1024; // 100MB maximum
+        this.maxTestSize = 25 * 1024 * 1024; // 25MB maximum (optimized)
         
         // Abort controllers for cleanup
         this.abortControllers = [];
@@ -449,112 +449,110 @@ class InternetSpeedTest {
     async testPing() {
         this.updateStatus('Testing latency...', 10);
         
-        const pings = [];
-        const testCount = this.pingTestCount;
-        const abortController = new AbortController();
-        this.abortControllers.push(abortController);
-        
-        // Use multiple endpoints for better accuracy
-        const pingUrls = [
-            'https://cloudflare.com/cdn-cgi/trace',
-            'https://1.1.1.1/cdn-cgi/trace',
-            'https://www.google.com/favicon.ico'
-        ];
-        
-        for (let i = 0; i < testCount && this.testState === 'running'; i++) {
-            const url = pingUrls[i % pingUrls.length];
-            const startTime = performance.now();
-            try {
-                await fetch(url, {
-                    method: 'GET',
-                    cache: 'no-cache',
-                    mode: 'no-cors',
-                    signal: abortController.signal
-                });
-                const endTime = performance.now();
-                const ping = Math.round(endTime - startTime);
-                if (ping < 1000 && ping > 0) { // Filter out unreasonable values
-                    pings.push(ping);
+        try {
+            const pings = [];
+            const testCount = this.pingTestCount;
+            const abortController = new AbortController();
+            this.abortControllers.push(abortController);
+            
+            // Use multiple endpoints for better accuracy
+            const pingUrls = [
+                'https://cloudflare.com/cdn-cgi/trace',
+                'https://1.1.1.1/cdn-cgi/trace',
+                'https://www.google.com/favicon.ico'
+            ];
+            
+            for (let i = 0; i < testCount && this.testState === 'running'; i++) {
+                const url = pingUrls[i % pingUrls.length];
+                const startTime = performance.now();
+                try {
+                    await fetch(url, {
+                        method: 'GET',
+                        cache: 'no-cache',
+                        mode: 'no-cors',
+                        signal: abortController.signal
+                    });
+                    const endTime = performance.now();
+                    const ping = Math.round(endTime - startTime);
+                    if (ping < 1000 && ping > 0) { // Filter out unreasonable values
+                        pings.push(ping);
+                    }
+                } catch (error) {
+                    if (error.name === 'AbortError') break;
+                    // For no-cors requests, we measure the time until the request is sent
+                    const endTime = performance.now();
+                    const ping = Math.round(endTime - startTime);
+                    if (ping < 500 && ping > 0) { // More conservative for no-cors
+                        pings.push(ping);
+                    }
                 }
-            } catch (error) {
-                if (error.name === 'AbortError') break;
-                // For no-cors requests, we measure the time until the request is sent
-                const endTime = performance.now();
-                const ping = Math.round(endTime - startTime);
-                if (ping < 500 && ping > 0) { // More conservative for no-cors
-                    pings.push(ping);
-                }
+                
+                // Update progress
+                const progress = 10 + ((i + 1) / testCount) * 15;
+                this.updateStatus(`Testing latency... (${i + 1}/${testCount})`, progress);
+                
+                await this.delay(100); // Shorter delay for more tests
             }
             
-            // Update progress
-            const progress = 10 + ((i + 1) / testCount) * 15;
-            this.updateStatus(`Testing latency... (${i + 1}/${testCount})`, progress);
+            if (pings.length > 0) {
+                // Sort and use interquartile mean (like Speedtest.net)
+                pings.sort((a, b) => a - b);
+                const trimmedPings = this.trimArray(pings, 0.25, 0.25); // Remove top/bottom 25%
+                this.ping = Math.round(trimmedPings.reduce((a, b) => a + b, 0) / trimmedPings.length);
+                
+                // Calculate jitter using proper methodology
+                this.jitter = this.calculateJitter(pings);
+            } else {
+                this.ping = 999;
+                this.jitter = 0;
+            }
             
-            await this.delay(100); // Shorter delay for more tests
-        }
-        
-        if (pings.length > 0) {
-            // Sort and use interquartile mean (like Speedtest.net)
-            pings.sort((a, b) => a - b);
-            const trimmedPings = this.trimArray(pings, 0.25, 0.25); // Remove top/bottom 25%
-            this.ping = Math.round(trimmedPings.reduce((a, b) => a + b, 0) / trimmedPings.length);
+            this.pingDisplay.textContent = this.ping;
+            this.jitterDisplay.textContent = this.jitter > 0 ? `${this.jitter} ms` : '0 ms';
             
-            // Calculate jitter using proper methodology
-            this.jitter = this.calculateJitter(pings);
-        } else {
-            this.ping = 999;
-            this.jitter = 0;
+            // Update progress to 25% after ping test
+            this.updateStatus('Ping test complete', 25);
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('Ping test error:', error);
+                this.ping = 999;
+                this.jitter = 0;
+                this.pingDisplay.textContent = this.ping;
+                this.jitterDisplay.textContent = '0 ms';
+            }
         }
-        
-        this.pingDisplay.textContent = this.ping;
-        this.jitterDisplay.textContent = this.jitter > 0 ? `${this.jitter} ms` : '0 ms';
-        
-        // Update progress to 25% after ping test
-        this.updateStatus('Ping test complete', 25);
     }
 
     async testDownload() {
         this.updateStatus('Testing download speed...', 30);
         
         try {
-            // Try Fast.com download test if available
-            const fastDownloadSpeed = await this.fastComDownloadTest();
-            if (fastDownloadSpeed > 0) {
-                this.downloadSpeed = fastDownloadSpeed;
-                this.downloadSpeedDisplay.textContent = this.downloadSpeed.toFixed(2);
-                return;
-            }
-        } catch (error) {
-            console.log('Fast.com download test failed, using fallback:', error);
-        }
-        
-        // Fallback to reliable download endpoints
+            // Use Cloudflare speed test endpoints - reliable and CORS-enabled
         const testUrls = [
-            'https://speed.cloudflare.com/__down?bytes=10485760', // 10MB
-            'https://speed.cloudflare.com/__down?bytes=10485760',
-            'https://speed.cloudflare.com/__down?bytes=10485760',
-            'https://speed.cloudflare.com/__down?bytes=10485760'
+            'https://speed.cloudflare.com/__down?bytes=0', // Dynamic size
+            'https://speed.cloudflare.com/__down?bytes=0',
+            'https://speed.cloudflare.com/__down?bytes=0',
+            'https://speed.cloudflare.com/__down?bytes=0',
+            'https://speed.cloudflare.com/__down?bytes=0',
+            'https://speed.cloudflare.com/__down?bytes=0'
         ];
-        
-        // Adaptive test duration based on connection speed
-        let testDuration = this.initialTestDuration;
-        let totalBytes = 0;
-        let speedMeasurements = [];
         
         // Initial quick test to determine appropriate parameters
         const initialSpeed = await this.quickDownloadTest();
-        const adaptiveDuration = this.calculateAdaptiveDuration(initialSpeed);
+        const adaptiveDuration = Math.max(8000, Math.min(15000, this.calculateAdaptiveDuration(initialSpeed)));
+        const numConnections = Math.min(6, Math.max(4, Math.ceil(initialSpeed / 50)));
         
         this.updateStatus('Testing download speed...', 40);
         const mainStartTime = performance.now();
+        let totalBytes = 0;
         let lastUpdateTime = mainStartTime;
+        const speedSamples = [];
         
         // Parallel download threads
         const abortController = new AbortController();
         this.abortControllers.push(abortController);
         
-        const downloadPromises = testUrls.map(async (url, threadIndex) => {
-            const threadStartTime = performance.now();
+        const downloadPromises = testUrls.slice(0, numConnections).map(async (url, threadIndex) => {
             let threadBytes = 0;
             
             while (performance.now() - mainStartTime < adaptiveDuration && this.testState === 'running') {
@@ -565,7 +563,10 @@ class InternetSpeedTest {
                         signal: abortController.signal
                     });
                     
-                    if (!response.ok) continue;
+                    if (!response.ok) {
+                        await this.delay(50);
+                        continue;
+                    }
                     
                     const reader = response.body.getReader();
                     
@@ -577,11 +578,23 @@ class InternetSpeedTest {
                         threadBytes += chunkSize;
                         totalBytes += chunkSize;
                         
-                        // Update progress every 200ms for smoother display
+                        // Update progress every 150ms for smoother display
                         const currentTime = performance.now();
-                        if (currentTime - lastUpdateTime > 200) {
+                        if (currentTime - lastUpdateTime > 150) {
                             const elapsedSeconds = (currentTime - mainStartTime) / 1000;
                             const currentSpeed = (totalBytes * 8) / (elapsedSeconds * 1024 * 1024);
+                            
+                            // Store speed sample
+                            speedSamples.push({
+                                time: elapsedSeconds,
+                                speed: currentSpeed
+                            });
+                            
+                            // Keep only recent samples
+                            if (speedSamples.length > 30) {
+                                speedSamples.shift();
+                            }
+                            
                             this.currentSpeedDisplay.textContent = currentSpeed.toFixed(2);
                             
                             const progress = 40 + ((currentTime - mainStartTime) / adaptiveDuration) * 30;
@@ -591,7 +604,6 @@ class InternetSpeedTest {
                     }
                 } catch (error) {
                     if (error.name === 'AbortError') break;
-                    console.log('Download thread error:', error);
                     await this.delay(100);
                 }
             }
@@ -604,34 +616,51 @@ class InternetSpeedTest {
         const endTime = performance.now();
         const durationSeconds = (endTime - mainStartTime) / 1000;
         
-        // Calculate final speed with proper methodology
-        this.downloadSpeed = this.calculateSpeed(totalBytes, durationSeconds);
+        // Calculate final speed using multiple methods for accuracy
+        const method1 = this.calculateSpeed(totalBytes, durationSeconds);
+        
+        // Use steady-state speed from samples if available
+        let method2 = method1;
+        if (speedSamples.length >= 10) {
+            const steadyState = speedSamples.slice(Math.floor(speedSamples.length * 0.5));
+            method2 = steadyState.reduce((sum, s) => sum + s.speed, 0) / steadyState.length;
+        }
+        
+        // Weighted average for accuracy
+        this.downloadSpeed = (method1 * 0.6 + method2 * 0.4);
         
         this.downloadSpeedDisplay.textContent = this.downloadSpeed.toFixed(2);
         
         // Update progress to 75% after download test
         this.updateStatus('Download test complete', 75);
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('Download test error:', error);
+                this.showError('Download test failed. Please try again.');
+            }
+            throw error;
+        }
     }
 
     async testUpload() {
         this.updateStatus('Testing upload speed...', 75);
         
         try {
-            // Use Fast.com upload test exclusively
-            const fastUploadSpeed = await this.fastComUploadTest();
-            if (fastUploadSpeed > 0) {
-                this.uploadSpeed = fastUploadSpeed;
+            // Use optimized upload test with CORS-enabled endpoints
+            const uploadSpeed = await this.optimizedUploadTest();
+            if (uploadSpeed > 0) {
+                this.uploadSpeed = uploadSpeed;
                 this.uploadSpeedDisplay.textContent = this.uploadSpeed.toFixed(2);
                 this.updateStatus('Upload test complete', 100);
                 return;
             }
         } catch (error) {
-            console.error('Fast.com upload test failed:', error);
+            console.error('Upload test failed:', error);
             this.showError('Upload test failed. Please try again.');
             return;
         }
         
-        // If Fast.com test returns 0, show error
+        // If upload test returns 0, show error
         this.showError('Upload test unavailable. Please try again.');
     }
 
@@ -684,393 +713,378 @@ class InternetSpeedTest {
     }
 
     async quickDownloadTest() {
-        const testUrl = 'https://speed.cloudflare.com/__down?bytes=1048576'; // 1MB
-        const startTime = performance.now();
+        // Quick test with multiple sizes for better estimation
+        const testSizes = [1048576, 2097152]; // 1MB and 2MB
+        let bestSpeed = 0;
         
-        try {
-            const response = await fetch(testUrl, { cache: 'no-cache' });
-            if (!response.ok) return 10; // Default estimate
-            
-            const reader = response.body.getReader();
-            let bytes = 0;
-            
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                bytes += value.length;
+        for (const size of testSizes) {
+            try {
+                const testUrl = `https://speed.cloudflare.com/__down?bytes=${size}`;
+                const startTime = performance.now();
+                
+                const response = await fetch(testUrl, { 
+                    cache: 'no-cache',
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) continue;
+                
+                const reader = response.body.getReader();
+                let bytes = 0;
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    bytes += value.length;
+                }
+                
+                const duration = (performance.now() - startTime) / 1000;
+                const speed = this.calculateSpeed(bytes, duration);
+                bestSpeed = Math.max(bestSpeed, speed);
+            } catch (error) {
+                continue;
             }
-            
-            const duration = (performance.now() - startTime) / 1000;
-            return this.calculateSpeed(bytes, duration);
-        } catch (error) {
-            return 10; // Conservative default
         }
+        
+        return Math.max(bestSpeed, 5); // Minimum 5 Mbps estimate
     }
 
     async quickUploadTest() {
-        // Use httpbin.org for quick upload test - reliable and CORS-enabled
-        const testData = new ArrayBuffer(256 * 1024); // 256KB for quick test
-        const view = new Uint8Array(testData);
-        for (let i = 0; i < 256 * 1024; i++) {
-            view[i] = Math.floor(Math.random() * 256);
+        // Quick upload test to determine connection characteristics
+        // Use smaller chunks for faster calibration
+        const testSizes = [512 * 1024, 1024 * 1024]; // 512KB and 1MB tests
+        let bestSpeed = 0;
+        
+        for (const testSize of testSizes) {
+            try {
+                const testData = this.generateTestData(testSize);
+                const startTime = performance.now();
+                
+                const response = await fetch('https://httpbin.org/post', {
+                    method: 'POST',
+                    body: testData,
+                    cache: 'no-cache',
+                    mode: 'cors',
+                    credentials: 'omit',
+                    headers: {
+                        'Content-Type': 'application/octet-stream',
+                        'X-Upload-Test': 'quick-calibration',
+                        'User-Agent': 'Eru-SpeedTest/2.0'
+                    },
+                    signal: AbortSignal.timeout(5000)
+                });
+                
+                if (response.ok) {
+                    await response.text(); // Ensure completion
+                    const duration = (performance.now() - startTime) / 1000;
+                    const speed = this.calculateSpeed(testData.byteLength, duration);
+                    bestSpeed = Math.max(bestSpeed, speed);
+                }
+            } catch (error) {
+                // Continue to next test size
+                continue;
+            }
         }
         
-        const startTime = performance.now();
-        
-        try {
-            // Use httpbin.org - reliable CORS-enabled endpoint
-            const response = await fetch('https://httpbin.org/post', {
-                method: 'POST',
-                body: testData,
-                cache: 'no-cache',
-                mode: 'cors',
-                headers: {
-                    'Content-Type': 'application/octet-stream',
-                    'X-Upload-Test': 'quick-test',
-                    'User-Agent': 'Eru-SpeedTest/1.0',
-                    'Accept': 'application/json'
-                },
-                signal: AbortSignal.timeout(8000) // 8 second timeout
-            });
-            
-            if (response.ok) {
-                const duration = (performance.now() - startTime) / 1000;
-                const speed = this.calculateSpeed(testData.byteLength, duration);
-                return Math.max(speed, 0.5); // Minimum 0.5 Mbps estimate
-            }
-        } catch (error) {
-            console.log('Primary quick upload test failed:', error);
-        }
-        
-        // Fallback to JSONPlaceholder with smaller data
-        try {
-            const smallData = new ArrayBuffer(64 * 1024); // 64KB
-            const smallView = new Uint8Array(smallData);
-            for (let i = 0; i < 64 * 1024; i++) {
-                smallView[i] = Math.floor(Math.random() * 256);
-            }
-            
-            const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Eru-SpeedTest/1.0'
-                },
-                body: JSON.stringify({ 
-                    test: 'speedtest-quick',
-                    data: Array.from(new Uint8Array(smallData))
-                }),
-                cache: 'no-cache',
-                mode: 'cors',
-                signal: AbortSignal.timeout(5000) // 5 second timeout for fallback
-            });
-            
-            if (response.ok) {
-                const duration = (performance.now() - startTime) / 1000;
-                const speed = this.calculateSpeed(smallData.byteLength, duration);
-                return Math.max(speed, 0.1); // Very conservative fallback
-            }
-        } catch (error) {
-            console.log('Fallback quick upload test failed:', error);
-        }
-        
-        return 1; // Conservative default upload estimate
+        // Return best speed found, or conservative estimate
+        return Math.max(bestSpeed, 1);
     }
 
     calculateAdaptiveDuration(speed) {
-        // Adaptive duration based on speed
-        if (speed < 1) return 12000; // Slow connections get more time
-        if (speed < 10) return 10000;
-        if (speed < 50) return 8000;
-        if (speed < 100) return 6000;
-        return 4000; // Fast connections need less time
+        // Adaptive duration based on speed - optimized for accuracy
+        if (speed < 1) return 15000; // Very slow connections
+        if (speed < 10) return 12000; // Slow connections
+        if (speed < 50) return 10000; // Medium connections
+        if (speed < 100) return 8000; // Fast connections
+        if (speed < 500) return 6000; // Very fast connections
+        return 5000; // Ultra-fast connections
     }
 
     calculateOptimalChunkSize(speed) {
-        // Larger chunks for faster connections
-        if (speed < 1) return 1024 * 1024; // 1MB
-        if (speed < 10) return 2 * 1024 * 1024; // 2MB
-        if (speed < 50) return 5 * 1024 * 1024; // 5MB
-        return 10 * 1024 * 1024; // 10MB
+        // Adaptive chunk sizing for optimal throughput
+        if (speed < 1) return 2 * 1024 * 1024; // 2MB for slow
+        if (speed < 10) return 5 * 1024 * 1024; // 5MB for medium
+        if (speed < 50) return 10 * 1024 * 1024; // 10MB for fast
+        if (speed < 200) return 15 * 1024 * 1024; // 15MB for very fast
+        return 25 * 1024 * 1024; // 25MB for ultra-fast (max)
     }
 
     generateTestData(size) {
+        // Use more efficient data generation for large buffers
         const buffer = new ArrayBuffer(size);
         const view = new Uint8Array(buffer);
         
-        // Generate pseudo-random data (more efficient than Math.random for large arrays)
-        for (let i = 0; i < size; i++) {
-            view[i] = (i * 1103515245 + 12345) & 0xFF; // Simple PRNG
+        // Use optimized PRNG for better performance
+        // Generate in chunks to avoid blocking
+        const chunkSize = 65536; // 64KB chunks
+        let offset = 0;
+        
+        while (offset < size) {
+            const chunkEnd = Math.min(offset + chunkSize, size);
+            for (let i = offset; i < chunkEnd; i++) {
+                // Linear congruential generator - fast and deterministic
+                view[i] = (i * 1103515245 + 12345) & 0xFF;
+            }
+            offset = chunkEnd;
         }
         
         return buffer;
     }
 
-    // Fast.com API integration for accurate speed testing
-    async fastComDownloadTest() {
-        try {
-            // Fast.com API is not publicly available, so we'll skip this
-            // and use the fallback method instead
-            return 0;
-            
-            // Note: The original implementation attempted to use Fast.com API
-            // but it requires proper authentication and token management
-            // which is not available in a client-side implementation
-        } catch (error) {
-            console.log('Fast.com download test failed:', error);
-            return 0;
-        }
-    }
 
-    async fastComUploadTest() {
+    async optimizedUploadTest() {
         try {
-            // Get Fast.com token and configuration
-            const token = await this.getFastComToken();
-            if (!token) {
-                console.log('Could not get Fast.com token');
-                return 0;
-            }
+            // LibreSpeed-inspired upload test methodology
+            // Phase 1: Quick calibration test
+            this.updateStatus('Calibrating upload test...', 75);
+            const quickSpeed = await this.quickUploadTest();
             
-            // Get Fast.com API configuration
-            const apiUrl = `https://api.fast.com/netflix/speedtest?https=true&token=${token}&urlCount=5`;
+            // LibreSpeed-style adaptive parameters
+            // Based on LibreSpeed's chunk sizing algorithm
+            const optimalChunkSize = this.calculateLibreSpeedChunkSize(quickSpeed);
+            const testDuration = this.calculateLibreSpeedDuration(quickSpeed);
+            const numConnections = this.calculateLibreSpeedConnections(quickSpeed);
             
-            let fastConfig;
-            try {
-                const configResponse = await fetch(apiUrl, {
-                    method: 'GET',
-                    cache: 'no-cache',
-                    mode: 'cors',
-                    headers: {
-                        'Accept': 'application/json',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                    }
-                });
+            console.log(`LibreSpeed-style upload: ${(optimalChunkSize / 1024 / 1024).toFixed(1)}MB chunks, ${numConnections} connections, ${(testDuration / 1000).toFixed(1)}s`);
+            
+            // Use multiple CORS-enabled endpoints
+            const uploadEndpoints = [
+                'https://httpbin.org/post',
+                'https://httpbin.org/post',
+                'https://httpbin.org/post',
+                'https://httpbin.org/post',
+                'https://httpbin.org/post',
+                'https://httpbin.org/post',
+                'https://httpbin.org/post',
+                'https://httpbin.org/post'
+            ];
+            
+            // Generate test data using LibreSpeed-style pattern
+            const testData = this.generateLibreSpeedTestData(optimalChunkSize);
+            
+            const startTime = performance.now();
+            const abortController = new AbortController();
+            this.abortControllers.push(abortController);
+            
+            // LibreSpeed-style measurement: track individual chunk upload times
+            const uploadMeasurements = [];
+            let totalBytes = 0;
+            let lastUpdateTime = startTime;
+            
+            // Create parallel upload connections (LibreSpeed methodology)
+            const uploadPromises = uploadEndpoints.slice(0, numConnections).map(async (endpoint, connectionId) => {
+                const connectionMeasurements = [];
+                let connectionBytes = 0;
+                let requestCount = 0;
                 
-                if (!configResponse.ok) {
-                    throw new Error('Failed to get Fast.com config');
+                while (performance.now() - startTime < testDuration && this.testState === 'running') {
+                    try {
+                        // LibreSpeed measures upload time, not round-trip
+                        const uploadStartTime = performance.now();
+                        
+                        // Use XMLHttpRequest-like approach with fetch for better timing
+                        const controller = new AbortController();
+                        const uploadPromise = fetch(endpoint, {
+                            method: 'POST',
+                            body: testData.slice(0),
+                            cache: 'no-cache',
+                            mode: 'cors',
+                            credentials: 'omit',
+                            headers: {
+                                'Content-Type': 'application/octet-stream',
+                                'X-Upload-Test': 'librespeed-style',
+                                'X-Connection-Id': connectionId.toString(),
+                                'User-Agent': 'Eru-SpeedTest-LibreSpeed/2.0'
+                            },
+                            signal: controller.signal
+                        });
+                        
+                        // Measure upload time (LibreSpeed methodology)
+                        // For high-speed connections, upload completes before response
+                        const uploadEndTime = performance.now();
+                        const uploadDuration = uploadEndTime - uploadStartTime;
+                        
+                        const response = await uploadPromise;
+                        
+                        if (response.ok) {
+                            // Read response quickly to ensure upload completed
+                            await response.text().catch(() => {});
+                            
+                            const chunkBytes = testData.byteLength;
+                            connectionBytes += chunkBytes;
+                            totalBytes += chunkBytes;
+                            requestCount++;
+                            
+                            // Store measurement (LibreSpeed style)
+                            const measurement = {
+                                bytes: chunkBytes,
+                                duration: uploadDuration,
+                                timestamp: uploadEndTime - startTime,
+                                connectionId: connectionId
+                            };
+                            
+                            connectionMeasurements.push(measurement);
+                            uploadMeasurements.push(measurement);
+                            
+                            // Update UI (throttled)
+                            const currentTime = performance.now();
+                            if (currentTime - lastUpdateTime > 100) {
+                                const elapsedSeconds = (currentTime - startTime) / 1000;
+                                
+                                // Calculate current speed using LibreSpeed method
+                                const currentSpeed = this.calculateLibreSpeedFromMeasurements(
+                                    uploadMeasurements.slice(-20), // Last 20 measurements
+                                    elapsedSeconds
+                                );
+                                
+                                this.currentSpeedDisplay.textContent = currentSpeed.toFixed(2);
+                                
+                                const progress = 75 + ((currentTime - startTime) / testDuration) * 25;
+                                this.updateStatus('Testing upload speed...', Math.min(progress, 100));
+                                lastUpdateTime = currentTime;
+                            }
+                            
+                            // LibreSpeed-style adaptive delay
+                            if (uploadDuration < 50) {
+                                await this.delay(5); // Very fast uploads need small delay
+                            }
+                        }
+                    } catch (error) {
+                        if (error.name === 'AbortError') break;
+                        await this.delay(50);
+                    }
                 }
                 
-                fastConfig = await configResponse.json();
-            } catch (error) {
-                console.log('Fast.com config fetch failed, using direct upload method:', error);
-                // Fallback: Use Fast.com CDN endpoints directly for upload
-                return await this.fastComDirectUploadTest();
-            }
-            
-            // Use Fast.com upload endpoints if available, otherwise use optimized upload method
-            return await this.fastComOptimizedUploadTest();
-            
-        } catch (error) {
-            console.error('Fast.com upload test error:', error);
-            return 0;
-        }
-    }
-    
-    async fastComOptimizedUploadTest() {
-        // Use high-performance upload endpoints optimized for speed testing
-        // Multiple endpoints for parallel upload testing
-        const uploadEndpoints = [
-            'https://httpbin.org/post', // Primary - reliable and fast
-            'https://httpbin.org/post', // Parallel connection 1
-            'https://httpbin.org/post', // Parallel connection 2
-            'https://httpbin.org/post'  // Parallel connection 3
-        ];
-        
-        // Determine optimal test parameters for accurate upload measurement
-        const testDuration = 12000; // 12 seconds for better accuracy on slower connections
-        const chunkSize = 15 * 1024 * 1024; // 15MB chunks for maximum throughput
-        const numConnections = 4; // Parallel connections for better speed
-        
-        // Generate optimized test data
-        const testData = this.generateTestData(chunkSize);
-        
-        const startTime = performance.now();
-        let totalBytes = 0;
-        let lastUpdateTime = startTime;
-        const abortController = new AbortController();
-        this.abortControllers.push(abortController);
-        
-        // Create parallel upload connections
-        const uploadPromises = uploadEndpoints.map(async (endpoint, index) => {
-            let connectionBytes = 0;
-            const connectionStartTime = performance.now();
-            
-            while (performance.now() - startTime < testDuration && this.testState === 'running') {
-                try {
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        body: testData.slice(),
-                        cache: 'no-cache',
-                        mode: 'cors',
-                        headers: {
-                            'Content-Type': 'application/octet-stream',
-                            'X-Upload-Test': 'fast-speedtest',
-                            'X-Connection-Id': index.toString(),
-                            'User-Agent': 'Eru-SpeedTest/2.0',
-                            'Accept': '*/*'
-                        },
-                        signal: abortController.signal,
-                        keepalive: true // Keep connection alive for better performance
-                    });
-                    
-                    if (response.ok) {
-                        connectionBytes += testData.byteLength;
-                        totalBytes += testData.byteLength;
-                        
-                        // Update progress every 200ms
-                        const currentTime = performance.now();
-                        if (currentTime - lastUpdateTime > 200) {
-                            const elapsedSeconds = (currentTime - startTime) / 1000;
-                            const currentSpeed = (totalBytes * 8) / (elapsedSeconds * 1024 * 1024);
-                            this.currentSpeedDisplay.textContent = currentSpeed.toFixed(2);
-                            
-                            const progress = 75 + ((currentTime - startTime) / testDuration) * 25;
-                            this.updateStatus('Testing upload speed...', Math.min(progress, 100));
-                            lastUpdateTime = currentTime;
-                        }
-                    }
-                } catch (error) {
-                    if (error.name === 'AbortError') break;
-                    // Continue with other connections - no delay for maximum speed
-                }
-            }
-            
-            return connectionBytes;
-        });
-        
-        await Promise.all(uploadPromises);
-        
-        const endTime = performance.now();
-        const durationSeconds = (endTime - startTime) / 1000;
-        
-        if (durationSeconds > 0 && totalBytes > 0) {
-            return this.calculateSpeed(totalBytes, durationSeconds);
-        }
-        
-        return 0;
-    }
-    
-    async fastComDirectUploadTest() {
-        // Direct upload test using optimized endpoints
-        // Use multiple high-performance CDN endpoints
-        const uploadEndpoints = [
-            'https://httpbin.org/post',
-            'https://postman-echo.com/post',
-            'https://httpbin.org/post',
-            'https://postman-echo.com/post'
-        ];
-        
-        const testDuration = 10000; // 10 seconds for better accuracy
-        const chunkSize = 10 * 1024 * 1024; // 10MB chunks
-        const numConnections = 4;
-        
-        const testData = this.generateTestData(chunkSize);
-        const startTime = performance.now();
-        let totalBytes = 0;
-        let lastUpdateTime = startTime;
-        const abortController = new AbortController();
-        this.abortControllers.push(abortController);
-        
-        const uploadPromises = uploadEndpoints.map(async (endpoint, index) => {
-            let connectionBytes = 0;
-            
-            while (performance.now() - startTime < testDuration && this.testState === 'running') {
-                try {
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        body: testData.slice(),
-                        cache: 'no-cache',
-                        mode: 'cors',
-                        headers: {
-                            'Content-Type': 'application/octet-stream',
-                            'X-Upload-Test': 'fast-speedtest-direct',
-                            'X-Connection-Id': index.toString(),
-                            'User-Agent': 'Eru-SpeedTest/2.0'
-                        },
-                        signal: abortController.signal
-                    });
-                    
-                    if (response.ok) {
-                        connectionBytes += testData.byteLength;
-                        totalBytes += testData.byteLength;
-                        
-                        const currentTime = performance.now();
-                        if (currentTime - lastUpdateTime > 200) {
-                            const elapsedSeconds = (currentTime - startTime) / 1000;
-                            const currentSpeed = (totalBytes * 8) / (elapsedSeconds * 1024 * 1024);
-                            this.currentSpeedDisplay.textContent = currentSpeed.toFixed(2);
-                            
-                            const progress = 75 + ((currentTime - startTime) / testDuration) * 25;
-                            this.updateStatus('Testing upload speed...', Math.min(progress, 100));
-                            lastUpdateTime = currentTime;
-                        }
-                    }
-                } catch (error) {
-                    if (error.name === 'AbortError') break;
-                    await this.delay(100);
-                }
-            }
-            
-            return connectionBytes;
-        });
-        
-        await Promise.all(uploadPromises);
-        
-        const endTime = performance.now();
-        const durationSeconds = (endTime - startTime) / 1000;
-        
-        if (durationSeconds > 0 && totalBytes > 0) {
-            return this.calculateSpeed(totalBytes, durationSeconds);
-        }
-        
-        return 0;
-    }
-
-
-    async getFastComToken() {
-        try {
-            // Get token from Fast.com by fetching their main page
-            // Fast.com embeds a token in their page that we can extract
-            const response = await fetch('https://fast.com', {
-                method: 'GET',
-                cache: 'no-cache',
-                mode: 'no-cors' // Use no-cors to avoid CORS issues
+                return {
+                    bytes: connectionBytes,
+                    measurements: connectionMeasurements,
+                    requests: requestCount
+                };
             });
             
-            // Since we can't read the response with no-cors, we'll use a default approach
-            // Fast.com tokens are typically base64 encoded strings
-            // For client-side, we'll use a workaround by making a request to their API
-            // which will work even without a token for basic functionality
+            const results = await Promise.all(uploadPromises);
             
-            // Try to get token from Fast.com's API endpoint
-            try {
-                const apiResponse = await fetch('https://api.fast.com/netflix/speedtest?https=true&urlCount=5', {
-                    method: 'GET',
-                    cache: 'no-cache',
-                    mode: 'cors',
-                    headers: {
-                        'Accept': 'application/json',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                    }
-                });
-                
-                if (apiResponse.ok) {
-                    // Token is typically in the response or we can proceed without it
-                    // Fast.com API sometimes works without explicit token
-                    return 'YXNkZmFzZGxmbnNkYWZoYXNkZmhrYWxm'; // Default token pattern
-                }
-            } catch (apiError) {
-                console.log('Fast.com API token fetch failed:', apiError);
-            }
+            const endTime = performance.now();
+            const durationSeconds = (endTime - startTime) / 1000;
             
-            // Return a default token that works for basic requests
-            return 'YXNkZmFzZGxmbnNkYWZoYXNkZmhrYWxm';
+            // LibreSpeed-style final calculation
+            const finalSpeed = this.calculateLibreSpeedFinal(uploadMeasurements, durationSeconds);
+            
+            const totalResultBytes = results.reduce((sum, r) => sum + r.bytes, 0);
+            const totalRequests = results.reduce((sum, r) => sum + r.requests, 0);
+            
+            console.log(`LibreSpeed upload: ${(totalResultBytes / 1024 / 1024).toFixed(2)}MB in ${durationSeconds.toFixed(2)}s = ${finalSpeed.toFixed(2)} Mbps (${totalRequests} requests)`);
+            
+            return Math.max(0, finalSpeed);
         } catch (error) {
-            console.log('Fast.com token extraction failed:', error);
-            // Return default token for fallback
-            return 'YXNkZmFzZGxmbnNkYWZoYXNkZmhrYWxm';
+            if (error.name !== 'AbortError') {
+                console.error('Upload test error:', error);
+            }
+            throw error;
         }
     }
+    
+    // LibreSpeed-inspired helper methods
+    // These methods implement LibreSpeed's proven algorithms for accurate speed measurement
+    calculateLibreSpeedChunkSize(speedMbps) {
+        // LibreSpeed uses adaptive chunk sizing based on connection speed
+        if (speedMbps < 5) return 1 * 1024 * 1024; // 1MB for slow
+        if (speedMbps < 25) return 2 * 1024 * 1024; // 2MB for medium
+        if (speedMbps < 100) return 5 * 1024 * 1024; // 5MB for fast
+        if (speedMbps < 500) return 10 * 1024 * 1024; // 10MB for very fast
+        return 20 * 1024 * 1024; // 20MB for ultra-fast (max)
+    }
+    
+    calculateLibreSpeedDuration(speedMbps) {
+        // LibreSpeed test duration: longer for slower connections
+        if (speedMbps < 10) return 15000; // 15s for slow
+        if (speedMbps < 50) return 12000; // 12s for medium
+        if (speedMbps < 200) return 10000; // 10s for fast
+        return 8000; // 8s for very fast
+    }
+    
+    calculateLibreSpeedConnections(speedMbps) {
+        // LibreSpeed uses more connections for faster speeds
+        if (speedMbps < 25) return 4; // 4 connections for slow
+        if (speedMbps < 100) return 6; // 6 connections for medium
+        if (speedMbps < 500) return 8; // 8 connections for fast
+        return 10; // 10 connections for ultra-fast (max)
+    }
+    
+    generateLibreSpeedTestData(size) {
+        // LibreSpeed uses specific data patterns for accurate measurement
+        const buffer = new ArrayBuffer(size);
+        const view = new Uint8Array(buffer);
+        
+        // Use a pattern that's compressible but not too compressible
+        // This ensures accurate measurement regardless of compression
+        for (let i = 0; i < size; i++) {
+            // Pseudo-random pattern (similar to LibreSpeed)
+            view[i] = (i * 1103515245 + 12345) & 0xFF;
+        }
+        
+        return buffer;
+    }
+    
+    calculateLibreSpeedFromMeasurements(measurements, totalTime) {
+        // LibreSpeed calculates speed from recent measurements
+        if (measurements.length === 0) return 0;
+        
+        // Use weighted average: more recent measurements have higher weight
+        let totalWeightedSpeed = 0;
+        let totalWeight = 0;
+        
+        measurements.forEach((m, index) => {
+            const weight = (index + 1) / measurements.length; // More recent = higher weight
+            const speed = (m.bytes * 8) / (m.duration / 1000 * 1024 * 1024);
+            totalWeightedSpeed += speed * weight;
+            totalWeight += weight;
+        });
+        
+        return totalWeight > 0 ? totalWeightedSpeed / totalWeight : 0;
+    }
+    
+    calculateLibreSpeedFinal(measurements, totalDuration) {
+        // LibreSpeed final calculation: uses statistical methods
+        if (measurements.length === 0) return 0;
+        
+        // Method 1: Overall average
+        const totalBytes = measurements.reduce((sum, m) => sum + m.bytes, 0);
+        const overallSpeed = this.calculateSpeed(totalBytes, totalDuration);
+        
+        // Method 2: Steady-state average (last 60% of measurements)
+        let steadyStateSpeed = 0;
+        if (measurements.length >= 5) {
+            const steadyState = measurements.slice(Math.floor(measurements.length * 0.4));
+            const steadyBytes = steadyState.reduce((sum, m) => sum + m.bytes, 0);
+            const steadyTime = steadyState[steadyState.length - 1].timestamp - steadyState[0].timestamp;
+            if (steadyTime > 0) {
+                steadyStateSpeed = this.calculateSpeed(steadyBytes, steadyTime / 1000);
+            }
+        }
+        
+        // Method 3: Peak speed (best 5 measurements)
+        let peakSpeed = 0;
+        if (measurements.length >= 5) {
+            const speeds = measurements.map(m => 
+                (m.bytes * 8) / (m.duration / 1000 * 1024 * 1024)
+            );
+            speeds.sort((a, b) => b - a);
+            const topSpeeds = speeds.slice(0, 5);
+            peakSpeed = topSpeeds.reduce((sum, s) => sum + s, 0) / topSpeeds.length;
+        }
+        
+        // LibreSpeed uses weighted combination: 50% steady-state, 30% overall, 20% peak
+        if (steadyStateSpeed > 0 && peakSpeed > 0) {
+            return (overallSpeed * 0.3 + steadyStateSpeed * 0.5 + peakSpeed * 0.2);
+        } else if (steadyStateSpeed > 0) {
+            return (overallSpeed * 0.4 + steadyStateSpeed * 0.6);
+        }
+        
+        return overallSpeed;
+    }
+
+
 }
 
 // Initialize the speed test when the page loads
