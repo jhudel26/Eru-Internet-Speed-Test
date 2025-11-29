@@ -49,17 +49,8 @@ class InternetSpeedTest {
 
     async detectConnectionInfo() {
         try {
-            // Use CORS-free services for browser compatibility
+            // Use reliable CORS-free services for browser compatibility
             const ipServices = [
-                {
-                    url: 'https://jsonip.com',
-                    parser: (data) => ({
-                        ip: data.ip,
-                        city: 'Unknown',
-                        country: 'Unknown',
-                        isp: 'Unknown'
-                    })
-                },
                 {
                     url: 'https://api.ipify.org?format=json',
                     parser: (data) => ({
@@ -71,6 +62,15 @@ class InternetSpeedTest {
                 },
                 {
                     url: 'https://ipapi.co/json/',
+                    parser: (data) => ({
+                        ip: data.ip,
+                        city: data.city,
+                        country: data.country_name,
+                        isp: data.org
+                    })
+                },
+                {
+                    url: 'https://api.ipgeolocation.io/ipgeo',
                     parser: (data) => ({
                         ip: data.ip,
                         city: data.city,
@@ -428,10 +428,10 @@ class InternetSpeedTest {
         let connectionBytes = 0;
         let lastUpdateTimeRef = lastUpdateTime;
         
-        // Use different endpoints for load balancing
+        // Use only working upload endpoints
         const uploadEndpoints = [
             'https://httpbin.org/post',
-            'https://httpbin.org/put'
+            'https://jsonplaceholder.typicode.com/posts'
         ];
         
         const endpoint = uploadEndpoints[connectionId % uploadEndpoints.length];
@@ -440,21 +440,42 @@ class InternetSpeedTest {
             try {
                 const uploadStartTime = performance.now();
                 
-                // Speedtest.net uses XHR for upload testing
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    body: testData.slice(), // Create fresh copy
-                    cache: 'no-cache',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/octet-stream',
-                        'X-Upload-Test': 'speedtest'
-                    }
-                });
+                // Use different methods for different endpoints
+                let response;
+                if (endpoint.includes('jsonplaceholder')) {
+                    // JSONPlaceholder only accepts JSON
+                    response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            test: 'speedtest', 
+                            connectionId: connectionId,
+                            data: Array.from(new Uint8Array(testData.slice(0, 2048))) // 2KB of data
+                        }),
+                        cache: 'no-cache',
+                        mode: 'cors'
+                    });
+                } else {
+                    // httpbin accepts binary data
+                    response = await fetch(endpoint, {
+                        method: 'POST',
+                        body: testData.slice(), // Create fresh copy
+                        cache: 'no-cache',
+                        mode: 'cors',
+                        headers: {
+                            'Content-Type': 'application/octet-stream',
+                            'X-Upload-Test': 'speedtest',
+                            'X-Connection-Id': connectionId.toString()
+                        }
+                    });
+                }
                 
                 if (response.ok) {
                     // Count the actual uploaded data
-                    connectionBytes += testData.byteLength;
+                    const uploadedSize = endpoint.includes('jsonplaceholder') ? 2048 : testData.byteLength;
+                    connectionBytes += uploadedSize;
                     
                     // Update progress display
                     const currentTime = performance.now();
@@ -469,21 +490,24 @@ class InternetSpeedTest {
                     }
                 } else {
                     console.log(`Upload connection ${connectionId} failed with status:`, response.status);
-                    // Try alternative endpoint if primary fails
-                    if (endpoint === 'https://httpbin.org/post') {
+                    // Try smaller data if large upload fails
+                    if (!endpoint.includes('jsonplaceholder')) {
                         try {
-                            const fallbackResponse = await fetch('https://jsonplaceholder.typicode.com/posts', {
+                            const smallData = new ArrayBuffer(1024); // 1KB
+                            const smallView = new Uint8Array(smallData);
+                            for (let i = 0; i < 1024; i++) {
+                                smallView[i] = Math.floor(Math.random() * 256);
+                            }
+                            
+                            const fallbackResponse = await fetch(endpoint, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                    test: 'speedtest', 
-                                    data: Array.from(new Uint8Array(testData.slice(0, 1024))) 
-                                }),
-                                cache: 'no-cache'
+                                body: smallData,
+                                cache: 'no-cache',
+                                mode: 'cors'
                             });
                             
                             if (fallbackResponse.ok) {
-                                connectionBytes += 1024; // Count smaller fallback data
+                                connectionBytes += 1024;
                             }
                         } catch (fallbackError) {
                             console.log('Fallback upload failed:', fallbackError);
