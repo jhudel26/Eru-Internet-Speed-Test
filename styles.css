@@ -426,285 +426,30 @@ input:focus-visible,
         display: none;
     }
 }
-    100% {
-        background-position: 0% 50%;
+
+/* ===== PERFORMANCE OPTIMIZATIONS ===== */
+
+/* Optimize animations for performance */
+@media (prefers-reduced-data: reduce) {
+    .backdrop-blur-xl,
+    .backdrop-blur-sm {
+        backdrop-filter: none;
+        background: rgba(0, 0, 0, 0.8);
     }
 }
 
-/* Slide up animation with bounce */
-@keyframes slide-up-bounce {
-    0% {
-        opacity: 0;
-        transform: translateY(30px) scale(0.95);
-    }
-    60% {
-        opacity: 1;
-        transform: translateY(-5px) scale(1.02);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* Enhanced body gradient */
-body {
-    background-size: 400% 400%;
-    animation: gradient-shift 20s ease infinite;
-}
-
-/* Glass morphism 2.0 */
-.glass-card {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow: 
-        0 8px 32px 0 rgba(31, 38, 135, 0.37),
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.glass-card:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    transform: translateY(-2px);
-    box-shadow: 
-        0 12px 40px 0 rgba(31, 38, 135, 0.45),
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
-}
-
-/* Enhanced button styles */
-.btn-primary {
-    position: relative;
-    overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    transform-style: preserve-3d;
-}
-
-.btn-primary::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.3),
-        transparent
-    );
-    transition: left 0.6s ease;
-}
-
-.btn-primary:hover::before {
-    left: 100%;
-}
-
-.btn-primary:active {
-    transform: scale(0.98) translateZ(-10px);
-}
-
-/* Result card animations */
-.result-card {
-    animation: slide-up-bounce 0.8s ease-out;
-    animation-fill-mode: both;
-    transform-style: preserve-3d;
-}
-
-.result-card:nth-child(1) {
-    animation-delay: 0.1s;
-}
-
-.result-card:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.result-card:nth-child(3) {
-    animation-delay: 0.3s;
-}
-
-/* Enhanced speed meter */
-.speed-meter {
-    position: relative;
-    width: 120px;
-    height: 120px;
-    margin: 0 auto;
-}
-
-.speed-meter::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    background: conic-gradient(
-        from 0deg,
-        #10b981 0deg,
-        #3b82f6 120deg,
-        #8b5cf6 240deg,
-        #ec4899 360deg
-    );
-    transform: translate(-50%, -50%);
-    opacity: 0.4;
-    animation: pulse-glow 3s ease-in-out infinite;
-    filter: blur(1px);
-}
-
-/* Modern loading spinner */
-.spinner {
-    width: 48px;
-    height: 48px;
-    border: 3px solid rgba(255, 255, 255, 0.15);
-    border-top: 3px solid #3b82f6;
-    border-radius: 50%;
-    animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Micro-interactions */
-.interactive-element {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.interactive-element:hover {
-    transform: translateY(-4px) scale(1.02);
-}
-
-.interactive-element:active {
-    transform: translateY(-2px) scale(1.01);
-}
-
-/* Enhanced progress bar */
-.progress-enhanced {
-    position: relative;
-    overflow: hidden;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-}
-
-.progress-enhanced::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent
-    );
-    transform: translateX(-100%);
-    animation: shimmer 2s infinite;
-}
-
-/* Responsive design improvements */
-@media (max-width: 1024px) {
-    .container {
-        padding: 2rem 1rem;
+/* Optimize for low-end devices */
+@media (max-width: 640px) {
+    .gpu-accelerated {
+        will-change: auto;
     }
     
-    h1 {
-        font-size: 3.5rem;
-    }
-    
-    .result-card {
-        margin-bottom: 1.5rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .container {
-        padding: 1rem;
-    }
-    
-    h1 {
-        font-size: 2.5rem;
-    }
-    
-    .result-card {
-        margin-bottom: 1rem;
-        padding: 1.5rem;
-    }
-    
-    .btn-primary {
-        padding: 1rem 2rem;
-        font-size: 1rem;
-    }
-}
-
-@media (max-width: 480px) {
-    h1 {
-        font-size: 2rem;
-    }
-    
-    .result-card {
-        padding: 1rem;
-    }
-}
-
-/* Smooth transitions for all interactive elements */
-* {
-    transition: 
-        color 0.3s ease,
-        background-color 0.3s ease,
-        transform 0.3s ease,
-        box-shadow 0.3s ease;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    backdrop-filter: blur(10px);
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-/* Focus states for accessibility */
-button:focus-visible,
-input:focus-visible {
-    outline: 2px solid #3b82f6;
-    outline-offset: 3px;
-    border-radius: 0.5rem;
-}
-
-/* Performance optimizations */
-.gpu-accelerated {
-    transform: translateZ(0);
-    backface-visibility: hidden;
-    perspective: 1000px;
-    will-change: transform;
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+    .animate-float-1,
+    .animate-float-2,
+    .animate-float-3,
+    .animate-float-4,
+    .animate-float-5 {
+        display: none;
     }
 }
 
