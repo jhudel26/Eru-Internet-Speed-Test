@@ -51,9 +51,9 @@ A modern, professional internet speed test web application with accurate measure
    - **Name**: `eru-speed-test` (or your preferred name)
    - **Branch**: `main` (or `master`)
    - **Root Directory**: Leave empty (uses root)
-   - **Build Command**: Leave empty (no build needed)
-   - **Publish Directory**: Leave empty (uses root)
-   - **Environment**: `Static Site`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Environment**: `Node`
 
 4. **Deploy**:
    - Click "Create Static Site"
