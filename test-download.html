@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Download Test Debug</title>
+</head>
+<body>
+    <h1>Download Endpoint Test</h1>
+    <button onclick="testEndpoints()">Test Download Endpoints</button>
+    <div id="results"></div>
+    
+    <script>
+        async function testEndpoints() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>Testing...</h2>';
+            
+            const testUrls = [
+                'https://speed.cloudflare.com/__down?bytes=1048576', // 1MB
+                'https://speed.cloudflare.com/__down?bytes=2097152', // 2MB
+                'https://httpbin.org/bytes/1048576', // 1MB from httpbin
+                'https://raw.githubusercontent.com/github/gitignore/main/README.md', // Small fallback
+                'https://github.com/nodejs/node/releases/download/v18.17.0/node-v18.17.0-win-x64.zip',
+                'https://upload.wikimedia.org/wikipedia/commons/3/3e/Alfonso_Cu%C3%A3%C2%A1n_2019_(cropped).jpg'
+            ];
+            
+            let html = '<h2>Results:</h2>';
+            
+            for (const url of testUrls) {
+                try {
+                    const startTime = performance.now();
+                    const response = await fetch(url, { 
+                        cache: 'no-cache',
+                        mode: 'cors',
+                        signal: AbortSignal.timeout(10000)
+                    });
+                    
+                    const duration = (performance.now() - startTime) / 1000;
+                    
+                    if (response.ok) {
+                        const contentLength = response.headers.get('content-length');
+                        html += `<p style="color: green">✓ ${url} - HTTP ${response.status} - ${contentLength || 'unknown'} bytes - ${(duration * 1000).toFixed(0)}ms</p>`;
+                    } else {
+                        html += `<p style="color: red">✗ ${url} - HTTP ${response.status}</p>`;
+                    }
+                } catch (error) {
+                    html += `<p style="color: red">✗ ${url} - Error: ${error.message}</p>`;
+                }
+            }
+            
+            results.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
