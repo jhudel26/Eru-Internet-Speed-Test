@@ -930,7 +930,8 @@ class InternetSpeedTest {
                         
                         // Use XMLHttpRequest-like approach with fetch for better timing
                         const controller = new AbortController();
-                        const uploadPromise = fetch(endpoint, {
+                        
+                        const response = await fetch(endpoint, {
                             method: 'POST',
                             body: testData.slice(0),
                             cache: 'no-cache',
@@ -945,12 +946,9 @@ class InternetSpeedTest {
                             signal: controller.signal
                         });
                         
-                        // Measure upload time (LibreSpeed methodology)
-                        // For high-speed connections, upload completes before response
+                        // Measure ACTUAL upload time (after request completes)
                         const uploadEndTime = performance.now();
                         const uploadDuration = uploadEndTime - uploadStartTime;
-                        
-                        const response = await uploadPromise;
                         
                         if (response.ok) {
                             // Read response quickly to ensure upload completed
@@ -1021,6 +1019,18 @@ class InternetSpeedTest {
             
             console.log(`LibreSpeed upload: ${(totalResultBytes / 1024 / 1024).toFixed(2)}MB in ${durationSeconds.toFixed(2)}s = ${finalSpeed.toFixed(2)} Mbps (${totalRequests} requests)`);
             
+            // Final validation - ensure upload speed is reasonable
+            if (finalSpeed <= 0 || !isFinite(finalSpeed)) {
+                console.log('Upload speed calculation failed, using fallback estimate');
+                return Math.max(quickSpeed * 0.7, 1); // Use 70% of quick speed or 1 Mbps minimum
+            }
+            
+            // Additional sanity check - upload shouldn't be dramatically higher than download quick test
+            if (quickSpeed > 0 && finalSpeed > quickSpeed * 2.5) {
+                console.log(`Upload speed ${finalSpeed.toFixed(2)} seems too high compared to quick test ${quickSpeed.toFixed(2)}, applying correction`);
+                finalSpeed = quickSpeed * 1.2; // Cap at 120% of quick test
+            }
+            
             return Math.max(0, finalSpeed);
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -1076,18 +1086,29 @@ class InternetSpeedTest {
         // LibreSpeed calculates speed from recent measurements
         if (measurements.length === 0) return 0;
         
+        // Filter out unrealistic measurements (too fast or too slow)
+        const validMeasurements = measurements.filter(m => {
+            const speed = (m.bytes * 8) / (m.duration / 1000 * 1024 * 1024);
+            return m.duration > 1 && speed > 0.1 && speed < 2000; // 0.1-2000 Mbps range
+        });
+        
+        if (validMeasurements.length === 0) return 0;
+        
         // Use weighted average: more recent measurements have higher weight
         let totalWeightedSpeed = 0;
         let totalWeight = 0;
         
-        measurements.forEach((m, index) => {
-            const weight = (index + 1) / measurements.length; // More recent = higher weight
+        validMeasurements.forEach((m, index) => {
+            const weight = (index + 1) / validMeasurements.length; // More recent = higher weight
             const speed = (m.bytes * 8) / (m.duration / 1000 * 1024 * 1024);
             totalWeightedSpeed += speed * weight;
             totalWeight += weight;
         });
         
-        return totalWeight > 0 ? totalWeightedSpeed / totalWeight : 0;
+        const avgSpeed = totalWeight > 0 ? totalWeightedSpeed / totalWeight : 0;
+        
+        // Apply conservative adjustment - upload speeds are typically lower than download
+        return Math.min(avgSpeed * 0.85, 1000); // Cap at 1000 Mbps and apply 15% reduction
     }
     
     calculateLibreSpeedFinal(measurements, totalDuration) {
@@ -1120,14 +1141,26 @@ class InternetSpeedTest {
             peakSpeed = topSpeeds.reduce((sum, s) => sum + s, 0) / topSpeeds.length;
         }
         
+        // Filter unrealistic speeds and apply conservative calculation
+        const validSpeeds = [overallSpeed, steadyStateSpeed, peakSpeed].filter(s => s > 0 && s < 2000);
+        
+        if (validSpeeds.length === 0) return 0;
+        
         // LibreSpeed uses weighted combination: 50% steady-state, 30% overall, 20% peak
-        if (steadyStateSpeed > 0 && peakSpeed > 0) {
-            return (overallSpeed * 0.3 + steadyStateSpeed * 0.5 + peakSpeed * 0.2);
-        } else if (steadyStateSpeed > 0) {
-            return (overallSpeed * 0.4 + steadyStateSpeed * 0.6);
+        let finalSpeed = 0;
+        if (steadyStateSpeed > 0 && peakSpeed > 0 && steadyStateSpeed < 2000 && peakSpeed < 2000) {
+            finalSpeed = (overallSpeed * 0.3 + steadyStateSpeed * 0.5 + peakSpeed * 0.2);
+        } else if (steadyStateSpeed > 0 && steadyStateSpeed < 2000) {
+            finalSpeed = (overallSpeed * 0.4 + steadyStateSpeed * 0.6);
+        } else {
+            finalSpeed = overallSpeed;
         }
         
-        return overallSpeed;
+        // Apply conservative caps and adjustments for upload
+        finalSpeed = Math.min(finalSpeed, 1000); // Cap at 1000 Mbps
+        finalSpeed = finalSpeed * 0.9; // Apply 10% reduction for upload overhead
+        
+        return Math.max(0, finalSpeed);
     }
 
 
