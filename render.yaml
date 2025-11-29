@@ -2,12 +2,8 @@ services:
   - type: web
     name: eru-speed-test
     env: static
-    buildCommand: npm install && npm run build
+    buildCommand: ""
     staticPublishPath: .
-    runCommand: npm start
-    envVars:
-      - key: NODE_VERSION
-        value: 18.x
     headers:
       - path: /*
         name: X-Content-Type-Options
