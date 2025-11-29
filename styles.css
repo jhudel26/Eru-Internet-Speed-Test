@@ -263,6 +263,26 @@ body {
     border-radius: 12px;
 }
 
+/* Default state - grey */
+.test-phase .w-10,
+.test-phase .w-12,
+.test-phase [class*="w-10"],
+.test-phase [class*="w-12"] {
+    background: rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.test-phase svg {
+    color: rgb(156, 163, 175); /* gray-400 */
+    transition: color 0.3s ease;
+}
+
+.test-phase .text-gray-500 {
+    color: rgb(107, 114, 128); /* gray-500 */
+    transition: color 0.3s ease;
+}
+
+/* Active state - blue/pulsing */
 .test-phase[data-phase="active"] {
     background-color: rgba(59, 130, 246, 0.15);
     border: 1px solid rgba(59, 130, 246, 0.4);
@@ -271,7 +291,10 @@ body {
     transform: scale(1.05);
 }
 
-.test-phase[data-phase="active"] .w-12 {
+.test-phase[data-phase="active"] .w-10,
+.test-phase[data-phase="active"] .w-12,
+.test-phase[data-phase="active"] [class*="w-10"],
+.test-phase[data-phase="active"] [class*="w-12"] {
     background: linear-gradient(135deg, rgb(59, 130, 246), rgb(147, 51, 234));
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
 }
@@ -281,20 +304,107 @@ body {
     animation: pulse 1.5s ease-in-out infinite;
 }
 
-.test-phase[data-phase="complete"] {
+.test-phase[data-phase="active"] .text-gray-500 {
+    color: rgb(59, 130, 246);
+}
+
+/* Complete state - green (only when marked as complete, not just the phase name) */
+/* This selector matches phases that have "complete" in their data-phase but are not just "complete" */
+.test-phase[data-phase*="complete"]:not([data-phase="complete"]) {
     background-color: rgba(34, 197, 94, 0.15);
     border: 1px solid rgba(34, 197, 94, 0.4);
     border-radius: 12px;
     animation: phase-complete 0.5s ease-out forwards;
 }
 
-.test-phase[data-phase="complete"] .w-12 {
+.test-phase[data-phase*="complete"]:not([data-phase="complete"]) .w-10,
+.test-phase[data-phase*="complete"]:not([data-phase="complete"]) .w-12,
+.test-phase[data-phase*="complete"]:not([data-phase="complete"]) [class*="w-10"],
+.test-phase[data-phase*="complete"]:not([data-phase="complete"]) [class*="w-12"] {
     background: linear-gradient(135deg, rgb(34, 197, 94), rgb(16, 185, 129));
     box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
 }
 
-.test-phase[data-phase="complete"] svg {
+.test-phase[data-phase*="complete"]:not([data-phase="complete"]) svg {
     color: white;
+}
+
+.test-phase[data-phase*="complete"]:not([data-phase="complete"]) .text-gray-500 {
+    color: rgb(34, 197, 94);
+}
+
+/* Complete phase icon when test is actually complete (has phase-complete class) */
+.test-phase.phase-complete[data-phase="complete"] {
+    background-color: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    border-radius: 12px;
+    animation: phase-complete 0.5s ease-out forwards;
+}
+
+.test-phase.phase-complete[data-phase="complete"] .w-10,
+.test-phase.phase-complete[data-phase="complete"] .w-12,
+.test-phase.phase-complete[data-phase="complete"] [class*="w-10"],
+.test-phase.phase-complete[data-phase="complete"] [class*="w-12"] {
+    background: linear-gradient(135deg, rgb(34, 197, 94), rgb(16, 185, 129));
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+}
+
+.test-phase.phase-complete[data-phase="complete"] svg {
+    color: white;
+}
+
+.test-phase.phase-complete[data-phase="complete"] .text-gray-500 {
+    color: rgb(34, 197, 94);
+}
+
+/* Phase-specific colors when complete - using class selector */
+.test-phase.phase-complete[data-phase*="ping"] .w-10,
+.test-phase.phase-complete[data-phase*="ping"] .w-12,
+.test-phase.phase-complete[data-phase*="ping"] [class*="w-10"],
+.test-phase.phase-complete[data-phase*="ping"] [class*="w-12"] {
+    background: linear-gradient(135deg, rgb(6, 182, 212), rgb(59, 130, 246)) !important; /* cyan to blue */
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.4) !important;
+}
+
+.test-phase.phase-complete[data-phase*="download"] .w-10,
+.test-phase.phase-complete[data-phase*="download"] .w-12,
+.test-phase.phase-complete[data-phase*="download"] [class*="w-10"],
+.test-phase.phase-complete[data-phase*="download"] [class*="w-12"] {
+    background: linear-gradient(135deg, rgb(34, 197, 94), rgb(16, 185, 129)) !important; /* green */
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.4) !important;
+}
+
+.test-phase.phase-complete[data-phase*="upload"] .w-10,
+.test-phase.phase-complete[data-phase*="upload"] .w-12,
+.test-phase.phase-complete[data-phase*="upload"] [class*="w-10"],
+.test-phase.phase-complete[data-phase*="upload"] [class*="w-12"] {
+    background: linear-gradient(135deg, rgb(147, 51, 234), rgb(219, 39, 119)) !important; /* purple to pink */
+    box-shadow: 0 0 15px rgba(147, 51, 234, 0.4) !important;
+}
+
+/* Alternative selector using attribute contains */
+.test-phase[data-phase*="ping complete"] .w-10,
+.test-phase[data-phase*="ping complete"] .w-12,
+.test-phase[data-phase*="ping complete"] [class*="w-10"],
+.test-phase[data-phase*="ping complete"] [class*="w-12"] {
+    background: linear-gradient(135deg, rgb(6, 182, 212), rgb(59, 130, 246)) !important;
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.4) !important;
+}
+
+.test-phase[data-phase*="download complete"] .w-10,
+.test-phase[data-phase*="download complete"] .w-12,
+.test-phase[data-phase*="download complete"] [class*="w-10"],
+.test-phase[data-phase*="download complete"] [class*="w-12"] {
+    background: linear-gradient(135deg, rgb(34, 197, 94), rgb(16, 185, 129)) !important;
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.4) !important;
+}
+
+.test-phase[data-phase*="upload complete"] .w-10,
+.test-phase[data-phase*="upload complete"] .w-12,
+.test-phase[data-phase*="upload complete"] [class*="w-10"],
+.test-phase[data-phase*="upload complete"] [class*="w-12"] {
+    background: linear-gradient(135deg, rgb(147, 51, 234), rgb(219, 39, 119)) !important;
+    box-shadow: 0 0 15px rgba(147, 51, 234, 0.4) !important;
 }
 
 @keyframes pulse {
