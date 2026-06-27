@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/share/:path*",
-      "destination": "/api/share"
-    }
-  ]
-}
