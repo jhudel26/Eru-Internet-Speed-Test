@@ -5,8 +5,7 @@
   "main": "index.html",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js",
-    "vercel-build": "echo 'No build needed'"
+    "dev": "node server.js"
   },
   "keywords": [
     "speed-test",
@@ -19,8 +18,7 @@
     "tailwindcss": "^4.1.17"
   },
   "dependencies": {
-    "@vercel/analytics": "^1.5.0",
-    "@vercel/kv": "^1.0.1"
+    "@vercel/analytics": "^1.5.0"
   },
   "engines": {
     "node": ">=18.0.0"
