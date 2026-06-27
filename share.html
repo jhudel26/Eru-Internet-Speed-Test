@@ -9,6 +9,7 @@
     <meta property="og:title" content="Eru Speed Test - {{DOWNLOAD_SPEED}} Mbps Download" />
     <meta property="og:description" content="Download: {{DOWNLOAD_SPEED}} Mbps | Upload: {{UPLOAD_SPEED}} Mbps | Ping: {{PING}} ms | ISP: {{ISP}}" />
     <meta property="og:image" content="{{OG_IMAGE_URL}}" />
+    <meta property="og:image:type" content="image/svg+xml" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Speed test result showing {{DOWNLOAD_SPEED}} Mbps download, {{UPLOAD_SPEED}} Mbps upload, and {{PING}} ms ping" />
@@ -108,7 +109,7 @@
                             <span class="text-lg sm:text-xl text-gray-400">Mbps</span>
                         </div>
                         <div class="mt-4 h-2 bg-slate-700 rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full" style="width: min(100%, {{DOWNLOAD_SPEED}} / 100 * 100%)"></div>
+                            <div class="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full" id="download-bar"></div>
                         </div>
                     </div>
 
@@ -123,7 +124,7 @@
                             <span class="text-lg sm:text-xl text-gray-400">Mbps</span>
                         </div>
                         <div class="mt-4 h-2 bg-slate-700 rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-purple-500 to-purple-400 rounded-full" style="width: min(100%, {{UPLOAD_SPEED}} / 100 * 100%)"></div>
+                            <div class="h-full bg-gradient-to-r from-purple-500 to-purple-400 rounded-full" id="upload-bar"></div>
                         </div>
                     </div>
 
@@ -138,7 +139,7 @@
                             <span class="text-lg sm:text-xl text-gray-400">ms</span>
                         </div>
                         <div class="mt-4 h-2 bg-slate-700 rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full" style="width: min(100%, (100 - {{PING}}) / 100 * 100%)"></div>
+                            <div class="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full" id="ping-bar"></div>
                         </div>
                     </div>
                 </div>
@@ -192,6 +193,34 @@
     </div>
 
     <script>
+        // Set progress bar widths
+        document.addEventListener('DOMContentLoaded', function() {
+            const downloadSpeed = parseFloat('{{DOWNLOAD_SPEED}}');
+            const uploadSpeed = parseFloat('{{UPLOAD_SPEED}}');
+            const ping = parseFloat('{{PING}}');
+            
+            // Set download bar (cap at 100% for speeds >= 100 Mbps)
+            const downloadBar = document.getElementById('download-bar');
+            if (downloadBar) {
+                const downloadPercent = Math.min(100, (downloadSpeed / 100) * 100);
+                downloadBar.style.width = downloadPercent + '%';
+            }
+            
+            // Set upload bar (cap at 100% for speeds >= 100 Mbps)
+            const uploadBar = document.getElementById('upload-bar');
+            if (uploadBar) {
+                const uploadPercent = Math.min(100, (uploadSpeed / 100) * 100);
+                uploadBar.style.width = uploadPercent + '%';
+            }
+            
+            // Set ping bar (inverse - lower ping is better)
+            const pingBar = document.getElementById('ping-bar');
+            if (pingBar) {
+                const pingPercent = Math.max(0, Math.min(100, (100 - ping) / 100 * 100));
+                pingBar.style.width = pingPercent + '%';
+            }
+        });
+        
         function copyLink() {
             const link = '{{BASE_URL}}/share/{{ID}}';
             navigator.clipboard.writeText(link).then(() => {
