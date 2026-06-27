@@ -2263,20 +2263,34 @@ Test your speed: ${window.location.origin}`;
     }
 
     shareToTwitter() {
-        const text = encodeURIComponent(this.generateShareText());
-        const url = `https://x.com/intent/tweet?text=${text}`;
+        const text = this.resultImageUrl 
+            ? this.generateShareTextWithImage(this.resultImageUrl)
+            : this.generateShareText();
+        const encodedText = encodeURIComponent(text);
+        const url = `https://x.com/intent/tweet?text=${encodedText}`;
         window.open(url, '_blank', 'width=550,height=420');
     }
 
     shareToFacebook() {
-        const url = encodeURIComponent(this.generateShareLink());
-        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+        // Facebook uses the share URL which includes Open Graph meta tags
+        const shareUrl = this.resultShareUrl || this.generateShareLink();
+        const encodedUrl = encodeURIComponent(shareUrl);
+        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
         window.open(facebookUrl, '_blank', 'width=550,height=420');
+        
+        if (this.resultShareUrl) {
+            alert('Share this link on Facebook: ' + shareUrl + '\n\nFacebook will automatically show your speed test result image when you share this link!');
+        } else {
+            alert('Tip: Upload the image first for the best Facebook sharing experience.');
+        }
     }
 
     shareToWhatsApp() {
-        const text = encodeURIComponent(this.generateShareText());
-        const url = `https://wa.me/?text=${text}`;
+        const text = this.resultImageUrl 
+            ? this.generateShareTextWithImage(this.resultImageUrl)
+            : this.generateShareText();
+        const encodedText = encodeURIComponent(text);
+        const url = `https://wa.me/?text=${encodedText}`;
         window.open(url, '_blank');
     }
     
@@ -2286,24 +2300,135 @@ Test your speed: ${window.location.origin}`;
             return;
         }
         
-        // Create a download link for the image
+        // Show loading state
+        if (this.downloadImageBtn) {
+            this.downloadImageBtn.innerHTML = `
+                <svg class="w-6 h-6 text-purple-400 mr-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                <span class="text-sm text-gray-300 font-mono">Uploading...</span>
+            `;
+            this.downloadImageBtn.disabled = true;
+        }
+        
+        try {
+            // Upload image to Upstash Redis via server API
+            const uploadResult = await this.uploadImageToHost(this.resultImageData);
+            
+            if (uploadResult) {
+                // Update share functions to include the image URL
+                this.resultImageUrl = uploadResult.imageUrl;
+                this.resultShareUrl = uploadResult.shareUrl;
+                this.resultId = uploadResult.resultId;
+                
+                // Update share inputs with image URL and share link
+                if (this.shareTextInput) {
+                    const shareText = this.generateShareTextWithImage(uploadResult.shareUrl);
+                    this.shareTextInput.value = shareText;
+                }
+                if (this.shareLinkInput) {
+                    this.shareLinkInput.value = uploadResult.shareUrl;
+                }
+                
+                alert('Image uploaded successfully! Share this link for Facebook to show the image: ' + uploadResult.shareUrl);
+            } else {
+                // Fallback: just download locally
+                this.downloadImageLocally();
+                alert('Image upload failed. Image saved locally. For best results on social media, manually upload the downloaded image.');
+            }
+            
+        } catch (error) {
+            console.error('Image processing failed:', error);
+            
+            // Fallback: just download locally
+            this.downloadImageLocally();
+            alert('Image saved locally. For best results on social media, manually upload the downloaded image.');
+        } finally {
+            // Reset button state
+            if (this.downloadImageBtn) {
+                this.downloadImageBtn.innerHTML = `
+                    <svg class="w-6 h-6 text-purple-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    <span class="text-sm text-gray-300 group-hover:text-white font-mono">Download Result Image</span>
+                `;
+                this.downloadImageBtn.disabled = false;
+            }
+        }
+    }
+    
+    downloadImageLocally() {
         const link = document.createElement('a');
         link.download = `speedtest-result-${Date.now()}.png`;
         link.href = this.resultImageData;
         link.click();
-        
-        // Also copy to clipboard if supported
+    }
+    
+    async uploadImageToHost(imageDataUrl) {
+        // Use the server-side API to upload image to Upstash Redis
         try {
-            const response = await fetch(this.resultImageData);
-            const blob = await response.blob();
-            await navigator.clipboard.write([
-                new ClipboardItem({ 'image/png': blob })
-            ]);
-            alert('Image saved and copied to clipboard! You can now paste it in social media.');
-        } catch (err) {
-            console.log('Clipboard API not supported or failed:', err);
-            alert('Image saved! You can now upload it to social media.');
+            const resultId = this.generateResultId();
+            
+            const response = await fetch('/api/upload-image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    imageData: imageDataUrl,
+                    resultId: resultId,
+                    metadata: {
+                        downloadSpeed: this.downloadSpeed,
+                        uploadSpeed: this.uploadSpeed,
+                        ping: this.ping,
+                        jitter: this.jitter,
+                        ispInfo: this.ispInfo,
+                        serverLocation: this.serverLocation,
+                        timestamp: new Date().toISOString()
+                    }
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Construct the full URL for the image
+                const protocol = window.location.protocol;
+                const host = window.location.host;
+                const imageUrl = `${protocol}//${host}/api/image/${resultId}`;
+                const shareUrl = `${protocol}//${host}/?result=${resultId}`;
+                
+                console.log('Image uploaded successfully:', imageUrl);
+                return { imageUrl, shareUrl, resultId };
+            } else {
+                throw new Error('Image upload failed');
+            }
+        } catch (error) {
+            console.error('Image upload error:', error);
+            return null;
         }
+    }
+    
+    generateResultId() {
+        // Generate a unique ID for this result
+        return 'result_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    generateShareTextWithImage(imageUrl) {
+        const timestamp = new Date().toLocaleString();
+        
+        return `🚀 My Internet Speed Test Results
+
+📥 Download: ${this.downloadSpeed.toFixed(2)} Mbps
+📤 Upload: ${this.uploadSpeed.toFixed(2)} Mbps  
+⚡ Ping: ${this.ping} ms
+📊 Jitter: ${this.jitter} ms
+
+🌐 ISP: ${this.ispInfo}
+📍 Server: ${this.serverLocation}
+
+📸 View result image: ${imageUrl}
+Test your speed: ${window.location.origin}`;
     }
 
     // Load results from URL parameters (for shared links)
