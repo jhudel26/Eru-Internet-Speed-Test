@@ -1,49 +1,40 @@
-const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@upstash/redis');
 
-const PORT = process.env.PORT || 10000;
-
 // Initialize Upstash Redis client
 let redis;
-try {
-  redis = createClient({
-    url: process.env.KV_REST_API_URL || 'https://stable-feline-97340.upstash.io',
-    token: process.env.KV_REST_API_TOKEN || 'gQAAAAAAAXw8AAIgcDEzYzYzOTdkMjE5Yjk0NmMzYjhmMjJhNTZlYTU1ZWVhOQ'
-  });
-  await redis.connect();
-  console.log('Connected to Upstash Redis');
-} catch (error) {
-  console.error('Failed to connect to Upstash Redis:', error);
-  console.log('Image upload functionality will be disabled');
-  redis = null;
+let redisConnected = false;
+
+async function initializeRedis() {
+  try {
+    redis = createClient({
+      url: process.env.KV_REST_API_URL || 'https://stable-feline-97340.upstash.io',
+      token: process.env.KV_REST_API_TOKEN || 'gQAAAAAAAXw8AAIgcDEzYzYzOTdkMjE5Yjk0NmMzYjhmMjJhNTZlYTU1ZWVhOQ'
+    });
+    await redis.connect();
+    redisConnected = true;
+    console.log('Connected to Upstash Redis');
+  } catch (error) {
+    console.error('Failed to connect to Upstash Redis:', error);
+    console.log('Image upload functionality will be disabled');
+    redis = null;
+    redisConnected = false;
+  }
 }
 
-const MIME_TYPES = {
-  '.html': 'text/html',
-  '.js': 'application/javascript',
-  '.css': 'text/css',
-  '.json': 'application/json',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf',
-  '.eot': 'application/vnd.ms-fontobject'
-};
+// Initialize Redis asynchronously
+initializeRedis();
 
-const server = http.createServer(async (req, res) => {
-  // Handle API endpoints
+// Vercel serverless function handler
+module.exports = async (req, res) => {
+  // Handle API requests
   if (req.url.startsWith('/api/')) {
     await handleAPIRequest(req, res);
     return;
   }
   
-  // Check if this is a shared result link
+  // Handle shared result links
   const url = new URL(req.url, `http://${req.headers.host}`);
   const resultId = url.searchParams.get('result');
   
@@ -52,7 +43,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   
-  // Remove query string and decode URI
+  // Serve static files
   let filePath = '.' + decodeURIComponent(req.url.split('?')[0]);
   
   // Default to index.html
@@ -68,7 +59,7 @@ const server = http.createServer(async (req, res) => {
   }
   
   const ext = path.extname(filePath).toLowerCase();
-  const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+  const contentType = getContentType(ext);
   
   fs.readFile(filePath, (error, content) => {
     if (error) {
@@ -93,29 +84,59 @@ const server = http.createServer(async (req, res) => {
         res.end(`Server Error: ${error.code}`);
       }
     } else {
-      // Set security headers
-      const headers = {
-        'Content-Type': contentType,
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY',
-        'X-XSS-Protection': '1; mode=block',
-        'Referrer-Policy': 'strict-origin-when-cross-origin'
-      };
-      
-      // Cache headers
-      if (ext === '.html') {
-        headers['Cache-Control'] = 'public, max-age=0, must-revalidate';
-      } else if (ext === '.js' || ext === '.css') {
-        headers['Cache-Control'] = 'public, max-age=31536000, immutable';
-      } else {
-        headers['Cache-Control'] = 'public, max-age=3600';
-      }
-      
-      res.writeHead(200, headers);
+      res.writeHead(200, { 'Content-Type': contentType });
       res.end(content, 'utf-8');
     }
   });
-});
+};
+
+function getContentType(ext) {
+  const MIME_TYPES = {
+    '.html': 'text/html',
+    '.js': 'application/javascript',
+    '.css': 'text/css',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.ttf': 'font/ttf',
+    '.eot': 'application/vnd.ms-fontobject'
+  };
+  return MIME_TYPES[ext] || 'application/octet-stream';
+}
+
+async function handleAPIRequest(req, res) {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = url.pathname;
+  
+  // Check if Redis is available and connected
+  if (!redis || !redisConnected) {
+    res.writeHead(503);
+    res.end(JSON.stringify({ error: 'Redis connection not available' }));
+    return;
+  }
+  
+  try {
+    if (pathname === '/api/upload-image' && req.method === 'POST') {
+      await handleImageUpload(req, res);
+    } else if (pathname.startsWith('/api/image/') && req.method === 'GET') {
+      await handleImageGet(req, res, url);
+    } else if (pathname === '/api/share-data' && req.method === 'GET') {
+      await handleShareData(req, res, url);
+    } else {
+      res.writeHead(404);
+      res.end('API endpoint not found');
+    }
+  } catch (error) {
+    console.error('API Error:', error);
+    res.writeHead(500);
+    res.end(JSON.stringify({ error: 'Internal server error' }));
+  }
+}
 
 async function handleSharedResult(req, res, resultId, url) {
   try {
@@ -200,8 +221,8 @@ async function handleAPIRequest(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = url.pathname;
   
-  // Check if Redis is available
-  if (!redis) {
+  // Check if Redis is available and connected
+  if (!redis || !redisConnected) {
     res.writeHead(503);
     res.end(JSON.stringify({ error: 'Redis connection not available' }));
     return;
@@ -335,8 +356,4 @@ async function handleShareData(req, res, url) {
     res.end(JSON.stringify({ error: 'Failed to retrieve share data' }));
   }
 }
-
-server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}/`);
-});
 
