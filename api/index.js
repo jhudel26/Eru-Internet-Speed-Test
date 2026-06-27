@@ -28,6 +28,9 @@ initializeRedis();
 
 // Vercel serverless function handler
 module.exports = async (req, res) => {
+  console.log('Request URL:', req.url);
+  console.log('Request method:', req.method);
+  
   // Handle API requests
   if (req.url.startsWith('/api/')) {
     await handleAPIRequest(req, res);
@@ -43,54 +46,10 @@ module.exports = async (req, res) => {
     return;
   }
   
-  // Serve static files
-  let filePath = '.' + decodeURIComponent(req.url.split('?')[0]);
-  
-  // Default to index.html
-  if (filePath === './' || filePath === '.') {
-    filePath = './index.html';
-  }
-  
-  // Security: prevent directory traversal
-  if (filePath.includes('..')) {
-    res.writeHead(400);
-    res.end('Bad Request');
-    return;
-  }
-  
-  const ext = path.extname(filePath).toLowerCase();
-  const contentType = getContentType(ext);
-  
-  fs.readFile(filePath, (error, content) => {
-    if (error) {
-      if (error.code === 'ENOENT') {
-        // File not found, try index.html
-        if (filePath !== './index.html') {
-          fs.readFile('./index.html', (err, content) => {
-            if (err) {
-              console.error('File not found:', filePath);
-              res.writeHead(404);
-              res.end('File Not Found');
-            } else {
-              res.writeHead(200, { 'Content-Type': 'text/html' });
-              res.end(content, 'utf-8');
-            }
-          });
-        } else {
-          console.error('Index.html not found');
-          res.writeHead(404);
-          res.end('File Not Found');
-        }
-      } else {
-        console.error('Server error:', error);
-        res.writeHead(500);
-        res.end(`Server Error: ${error.code}`);
-      }
-    } else {
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content, 'utf-8');
-    }
-  });
+  // For all other requests, return 404 - let Vercel handle static files
+  console.log('Not an API request, returning 404');
+  res.writeHead(404);
+  res.end('Not found - static files should be served by Vercel');
 };
 
 function getContentType(ext) {
