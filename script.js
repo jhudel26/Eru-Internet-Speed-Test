@@ -1987,6 +1987,8 @@ Test your speed at: ${window.location.origin}`;
                 ipAddress: this.ipAddress
             };
             
+            console.log('Attempting to save result:', result);
+            
             const response = await fetch('/api/save', {
                 method: 'POST',
                 headers: {
@@ -1995,7 +1997,18 @@ Test your speed at: ${window.location.origin}`;
                 body: JSON.stringify(result)
             });
             
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API Error:', response.status, errorText);
+                // Fallback to URL parameter method if save fails
+                return this.generateShareLink();
+            }
+            
             const data = await response.json();
+            console.log('API Response:', data);
+            
             if (data.success && data.id) {
                 return `${window.location.origin}/share/${data.id}`;
             } else {
