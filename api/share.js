@@ -1,17 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const { createClient } = require('@vercel/kv');
 
-// Helper function to read results
-function readResults() {
-  try {
-    const data = fs.readFileSync(path.join(__dirname, '../results.json'), 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    return {};
-  }
-}
-
-export default function handler(req, res) {
+export default async function handler(req, res) {
   // Extract ID from URL path
   const urlPath = req.url;
   const idMatch = urlPath.match(/\/share\/([a-zA-Z0-9]+)/);
@@ -22,8 +13,23 @@ export default function handler(req, res) {
     return;
   }
 
-  const results = readResults();
-  const result = results[id];
+  let result;
+  
+  // Try to get from Vercel KV
+  try {
+    const kv = createClient({
+      url: process.env.KV_URL,
+      token: process.env.KV_REST_API_TOKEN,
+    });
+    
+    const resultData = await kv.get(`result:${id}`);
+    
+    if (resultData) {
+      result = JSON.parse(resultData);
+    }
+  } catch (kvError) {
+    console.error('KV not available:', kvError.message);
+  }
   
   if (!result) {
     res.status(404).send('<html><body><h1>Result not found</h1><p>The speed test result you are looking for does not exist.</p></body></html>');

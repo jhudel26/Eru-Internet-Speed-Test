@@ -1,17 +1,6 @@
-const fs = require('fs');
-const path = require('path');
+const { createClient } = require('@vercel/kv');
 
-// Helper function to read results
-function readResults() {
-  try {
-    const data = fs.readFileSync(path.join(__dirname, '../results.json'), 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    return {};
-  }
-}
-
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const { result } = req.query;
   
   if (req.method !== 'GET') {
@@ -24,15 +13,30 @@ export default function handler(req, res) {
     return;
   }
   
-  const results = readResults();
-  const speedResult = results[result];
-  
-  if (!speedResult) {
-    res.status(404).send('Result not found');
-    return;
-  }
-  
   try {
+    let speedResult;
+    
+    // Try to get from Vercel KV
+    try {
+      const kv = createClient({
+        url: process.env.KV_URL,
+        token: process.env.KV_REST_API_TOKEN,
+      });
+      
+      const resultData = await kv.get(`result:${result}`);
+      
+      if (resultData) {
+        speedResult = JSON.parse(resultData);
+      }
+    } catch (kvError) {
+      console.error('KV not available:', kvError.message);
+    }
+    
+    if (!speedResult) {
+      res.status(404).send('Result not found');
+      return;
+    }
+    
     const { downloadSpeed, uploadSpeed, ping, isp, location } = speedResult;
     
     const svg = `

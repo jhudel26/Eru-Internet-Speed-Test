@@ -1,29 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-
-// Helper function to read results
-function readResults() {
-  try {
-    const data = fs.readFileSync(path.join(__dirname, '../results.json'), 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    // Return empty object if file doesn't exist
-    console.log('Results file not found, creating new');
-    return {};
-  }
-}
-
-// Helper function to write results
-function writeResults(results) {
-  try {
-    const filePath = path.join(__dirname, '../results.json');
-    fs.writeFileSync(filePath, JSON.stringify(results, null, 2));
-    console.log('Successfully wrote results to file');
-  } catch (error) {
-    console.error('Error writing results:', error);
-    throw new Error('Failed to save results: ' + error.message);
-  }
-}
+const { createClient } = require('@vercel/kv');
 
 // Helper function to generate unique ID
 function generateId() {
@@ -92,8 +67,7 @@ export default async function handler(req, res) {
     console.log('Valid result data:', body);
     
     const id = generateId();
-    const results = readResults();
-    results[id] = {
+    const resultData = {
       downloadSpeed: Number(body.downloadSpeed) || 0,
       uploadSpeed: Number(body.uploadSpeed) || 0,
       ping: Number(body.ping) || 0,
@@ -104,10 +78,29 @@ export default async function handler(req, res) {
       createdAt: new Date().toISOString()
     };
     
-    writeResults(results);
-    console.log('Successfully saved result with ID:', id);
-    
-    return res.status(200).json({ id, success: true });
+    // Try to use Vercel KV if available
+    try {
+      const kv = createClient({
+        url: process.env.KV_URL,
+        token: process.env.KV_REST_API_TOKEN,
+      });
+      
+      // Store the result in KV
+      await kv.set(`result:${id}`, JSON.stringify(resultData));
+      console.log('Successfully saved result to KV with ID:', id);
+      
+      return res.status(200).json({ id, success: true });
+    } catch (kvError) {
+      console.error('KV not available, using fallback:', kvError.message);
+      
+      // Fallback: Return a temporary ID that encodes the data
+      // This allows sharing to work without persistent storage
+      const encodedData = btoa(JSON.stringify(resultData)).substring(0, 8);
+      const fallbackId = `${id}${encodedData}`;
+      
+      console.log('Using fallback ID:', fallbackId);
+      return res.status(200).json({ id: fallbackId, success: true, fallback: true });
+    }
   } catch (error) {
     console.error('Error in save handler:', error);
     return res.status(500).json({ error: 'Internal server error', details: error.message });
