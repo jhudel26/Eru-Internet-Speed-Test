@@ -28,9 +28,6 @@ initializeRedis();
 
 // Vercel serverless function handler
 module.exports = async (req, res) => {
-  console.log('Request URL:', req.url);
-  console.log('Request method:', req.method);
-  
   // Handle API requests
   if (req.url.startsWith('/api/')) {
     await handleAPIRequest(req, res);
@@ -46,27 +43,54 @@ module.exports = async (req, res) => {
     return;
   }
   
-  // Handle old parameter-based sharing format (d=download, u=upload, p=ping, j=jitter, t=timestamp)
-  const downloadSpeed = url.searchParams.get('d');
-  const uploadSpeed = url.searchParams.get('u');
-  const ping = url.searchParams.get('p');
-  const jitter = url.searchParams.get('j');
+  // Serve static files
+  let filePath = '.' + decodeURIComponent(req.url.split('?')[0]);
   
-  if (downloadSpeed && uploadSpeed && ping) {
-    await handleParameterBasedShare(req, res, {
-      downloadSpeed,
-      uploadSpeed,
-      ping,
-      jitter: jitter || '0',
-      timestamp: url.searchParams.get('t')
-    }, url);
+  // Default to index.html
+  if (filePath === './' || filePath === '.') {
+    filePath = './index.html';
+  }
+  
+  // Security: prevent directory traversal
+  if (filePath.includes('..')) {
+    res.writeHead(400);
+    res.end('Bad Request');
     return;
   }
   
-  // For all other requests, return 404 - let Vercel handle static files
-  console.log('Not an API request, returning 404');
-  res.writeHead(404);
-  res.end('Not found - static files should be served by Vercel');
+  const ext = path.extname(filePath).toLowerCase();
+  const contentType = getContentType(ext);
+  
+  fs.readFile(filePath, (error, content) => {
+    if (error) {
+      if (error.code === 'ENOENT') {
+        // File not found, try index.html
+        if (filePath !== './index.html') {
+          fs.readFile('./index.html', (err, content) => {
+            if (err) {
+              console.error('File not found:', filePath);
+              res.writeHead(404);
+              res.end('File Not Found');
+            } else {
+              res.writeHead(200, { 'Content-Type': 'text/html' });
+              res.end(content, 'utf-8');
+            }
+          });
+        } else {
+          console.error('Index.html not found');
+          res.writeHead(404);
+          res.end('File Not Found');
+        }
+      } else {
+        console.error('Server error:', error);
+        res.writeHead(500);
+        res.end(`Server Error: ${error.code}`);
+      }
+    } else {
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(content, 'utf-8');
+    }
+  });
 };
 
 function getContentType(ext) {
@@ -91,6 +115,13 @@ function getContentType(ext) {
 async function handleAPIRequest(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = url.pathname;
+  
+  // Check if Redis is available and connected
+  if (!redis || !redisConnected) {
+    res.writeHead(503);
+    res.end(JSON.stringify({ error: 'Redis connection not available' }));
+    return;
+  }
   
   try {
     if (pathname === '/api/upload-image' && req.method === 'POST') {
@@ -186,6 +217,35 @@ async function handleSharedResult(req, res, resultId, url) {
         res.end(content, 'utf-8');
       }
     });
+  }
+}
+
+async function handleAPIRequest(req, res) {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = url.pathname;
+  
+  // Check if Redis is available and connected
+  if (!redis || !redisConnected) {
+    res.writeHead(503);
+    res.end(JSON.stringify({ error: 'Redis connection not available' }));
+    return;
+  }
+  
+  try {
+    if (pathname === '/api/upload-image' && req.method === 'POST') {
+      await handleImageUpload(req, res);
+    } else if (pathname.startsWith('/api/image/') && req.method === 'GET') {
+      await handleImageGet(req, res, url);
+    } else if (pathname === '/api/share-data' && req.method === 'GET') {
+      await handleShareData(req, res, url);
+    } else {
+      res.writeHead(404);
+      res.end('API endpoint not found');
+    }
+  } catch (error) {
+    console.error('API Error:', error);
+    res.writeHead(500);
+    res.end(JSON.stringify({ error: 'Internal server error' }));
   }
 }
 
@@ -300,48 +360,3 @@ async function handleShareData(req, res, url) {
   }
 }
 
-async function handleParameterBasedShare(req, res, params, url) {
-  try {
-    // Read index.html
-    fs.readFile(path.join(__dirname, '..', 'index.html'), (err, content) => {
-      if (err) {
-        res.writeHead(404);
-        res.end('File Not Found');
-        return;
-      }
-      
-      const protocol = req.headers['x-forwarded-proto'] || 'http';
-      const host = req.headers.host;
-      
-      // Update Open Graph meta tags with basic info (no image for old format)
-      let htmlContent = content.toString();
-      
-      // Replace the og:url meta tag
-      htmlContent = htmlContent.replace(
-        /<meta property="og:url" content="">/,
-        `<meta property="og:url" content="${protocol}://${host}${url.pathname}?${url.searchParams.toString()}">`
-      );
-      
-      // Update description to include result info
-      htmlContent = htmlContent.replace(
-        /<meta property="og:description" content="[^"]*">/,
-        `<meta property="og:description" content="Check out my internet speed test results! Download: ${params.downloadSpeed} Mbps, Upload: ${params.uploadSpeed} Mbps, Ping: ${params.ping} ms">`
-      );
-      
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(htmlContent, 'utf-8');
-    });
-  } catch (error) {
-    console.error('Parameter-based share error:', error);
-    // Fallback to normal index.html
-    fs.readFile(path.join(__dirname, '..', 'index.html'), (err, content) => {
-      if (err) {
-        res.writeHead(404);
-        res.end('File Not Found');
-      } else {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(content, 'utf-8');
-      }
-    });
-  }
-}

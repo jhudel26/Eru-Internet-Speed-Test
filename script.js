@@ -2213,7 +2213,12 @@ Test your speed: ${window.location.origin}`;
     }
 
     generateShareLink() {
-        // Encode results in URL parameters
+        // Use Redis-based sharing if available (for Facebook image support)
+        if (this.resultShareUrl) {
+            return this.resultShareUrl;
+        }
+        
+        // Fallback to parameter-based format
         const params = new URLSearchParams({
             d: this.downloadSpeed.toFixed(2),
             u: this.uploadSpeed.toFixed(2),
