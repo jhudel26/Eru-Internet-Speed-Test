@@ -2089,7 +2089,10 @@ Test your speed at: ${window.location.origin}`;
         if (shareMatch) {
             const id = shareMatch[1];
             try {
-                const response = await fetch(`/api/results/${id}`);
+                // Use different API endpoint for Vercel vs local
+                const apiEndpoint = `/api/results/${id}`;
+                
+                const response = await fetch(apiEndpoint);
                 const result = await response.json();
                 
                 if (result && !result.error) {
