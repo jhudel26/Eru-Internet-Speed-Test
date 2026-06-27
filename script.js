@@ -2003,6 +2003,7 @@ Test your speed at: ${window.location.origin}`;
                 const errorText = await response.text();
                 console.error('API Error:', response.status, errorText);
                 // Fallback to URL parameter method if save fails
+                console.log('Falling back to URL parameter method');
                 return this.generateShareLink();
             }
             
@@ -2010,13 +2011,16 @@ Test your speed at: ${window.location.origin}`;
             console.log('API Response:', data);
             
             if (data.success && data.id) {
+                console.log('Successfully saved with ID:', data.id);
                 return `${window.location.origin}/share/${data.id}`;
             } else {
+                console.log('API response missing success/id, falling back');
                 // Fallback to URL parameter method if save fails
                 return this.generateShareLink();
             }
         } catch (error) {
             console.error('Error saving results:', error);
+            console.log('Falling back to URL parameter method due to error');
             // Fallback to URL parameter method
             return this.generateShareLink();
         }
