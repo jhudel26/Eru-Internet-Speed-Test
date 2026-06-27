@@ -1,8 +1,10 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { generateOGImage } = require('./api-og');
 
 const PORT = process.env.PORT || 10000;
+const RESULTS_FILE = './results.json';
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -20,7 +22,100 @@ const MIME_TYPES = {
   '.eot': 'application/vnd.ms-fontobject'
 };
 
+// Helper function to read results
+function readResults() {
+  try {
+    const data = fs.readFileSync(RESULTS_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    return {};
+  }
+}
+
+// Helper function to write results
+function writeResults(results) {
+  fs.writeFileSync(RESULTS_FILE, JSON.stringify(results, null, 2));
+}
+
+// Helper function to generate unique ID
+function generateId() {
+  return Math.random().toString(36).substring(2, 10);
+}
+
 const server = http.createServer((req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  
+  // API Routes
+  if (url.pathname === '/api/save' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const result = JSON.parse(body);
+        const id = generateId();
+        const results = readResults();
+        results[id] = {
+          ...result,
+          createdAt: new Date().toISOString()
+        };
+        writeResults(results);
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ id, success: true }));
+      } catch (error) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid request body' }));
+      }
+    });
+    return;
+  }
+  
+  if (url.pathname.startsWith('/api/results/') && req.method === 'GET') {
+    const id = url.pathname.split('/').pop();
+    const results = readResults();
+    const result = results[id];
+    
+    if (result) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } else {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Result not found' }));
+    }
+    return;
+  }
+  
+  if (url.pathname === '/api/og' && req.method === 'GET') {
+    const id = url.searchParams.get('result');
+    if (!id) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('Missing result parameter');
+      return;
+    }
+    
+    const results = readResults();
+    const result = results[id];
+    
+    if (!result) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Result not found');
+      return;
+    }
+    
+    try {
+      const svg = generateOGImage(result);
+      res.writeHead(200, { 
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'public, max-age=3600'
+      });
+      res.end(svg);
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Error generating image');
+    }
+    return;
+  }
+  
   // Remove query string and decode URI
   let filePath = '.' + decodeURIComponent(req.url.split('?')[0]);
   
@@ -33,6 +128,44 @@ const server = http.createServer((req, res) => {
   if (filePath.includes('..')) {
     res.writeHead(400);
     res.end('Bad Request');
+    return;
+  }
+  
+  // Handle share route
+  if (filePath.startsWith('./share/')) {
+    const id = filePath.replace('./share/', '').replace('.html', '');
+    const results = readResults();
+    const result = results[id];
+    
+    if (result) {
+      // Read share.html and replace placeholders
+      fs.readFile('./share.html', (err, template) => {
+        if (err) {
+          res.writeHead(404);
+          res.end('Share template not found');
+          return;
+        }
+        
+        let content = template.toString();
+        const baseUrl = `http://${req.headers.host}`;
+        
+        // Replace placeholders with actual data
+        content = content.replace('{{ID}}', id);
+        content = content.replace('{{DOWNLOAD_SPEED}}', result.downloadSpeed.toFixed(1));
+        content = content.replace('{{UPLOAD_SPEED}}', result.uploadSpeed.toFixed(1));
+        content = content.replace('{{PING}}', result.ping.toFixed(0));
+        content = content.replace('{{ISP}}', result.isp || 'Unknown');
+        content = content.replace('{{LOCATION}}', result.location || 'Unknown');
+        content = content.replace('{{BASE_URL}}', baseUrl);
+        content = content.replace('{{OG_IMAGE_URL}}', `${baseUrl}/api/og?result=${id}`);
+        
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(content);
+      });
+    } else {
+      res.writeHead(404, { 'Content-Type': 'text/html' });
+      res.end('<html><body><h1>Result not found</h1><p>The speed test result you are looking for does not exist.</p></body></html>');
+    }
     return;
   }
   

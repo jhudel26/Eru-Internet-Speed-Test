@@ -319,6 +319,9 @@ class InternetSpeedTest {
             if (this.testState !== 'running') return; // Check if aborted
             
             this.showResults();
+            
+            // Save results to server (fire and forget)
+            this.saveAndGetShareLink().catch(err => console.error('Failed to save results:', err));
         } catch (error) {
             if (error.name !== 'AbortError') {
                 console.error('Speed test error:', error);
@@ -430,7 +433,7 @@ class InternetSpeedTest {
         }
     }
 
-    showResults() {
+    showResults(skipAnimation = false) {
         // Hide test control section
         this.testControlSection.classList.add('hidden');
         
@@ -454,24 +457,27 @@ class InternetSpeedTest {
             phase.classList.add('phase-complete');
         });
         
-        // Animate the results with staggered timing
-        setTimeout(() => {
-            this.animateValue(this.downloadSpeedDisplay, 0, this.downloadSpeed, 1000);
-        }, 100);
-        setTimeout(() => {
-            this.animateValue(this.uploadSpeedDisplay, 0, this.uploadSpeed, 1000);
-        }, 200);
-        setTimeout(() => {
-            this.animateValue(this.pingDisplay, 0, this.ping, 1000, 'ms');
-        }, 300);
-        setTimeout(() => {
-            this.animateValue(this.jitterDisplay, 0, this.jitter, 1000, 'ms');
-        }, 400);
-        
-        // Animate quality scores
-        setTimeout(() => {
-            this.animateQualityScores();
-        }, 500);
+        // Only animate if not loading from shared link
+        if (!skipAnimation) {
+            // Animate the results with staggered timing
+            setTimeout(() => {
+                this.animateValue(this.downloadSpeedDisplay, 0, this.downloadSpeed, 1000);
+            }, 100);
+            setTimeout(() => {
+                this.animateValue(this.uploadSpeedDisplay, 0, this.uploadSpeed, 1000);
+            }, 200);
+            setTimeout(() => {
+                this.animateValue(this.pingDisplay, 0, this.ping, 1000, 'ms');
+            }, 300);
+            setTimeout(() => {
+                this.animateValue(this.jitterDisplay, 0, this.jitter, 1000, 'ms');
+            }, 400);
+            
+            // Animate quality scores
+            setTimeout(() => {
+                this.animateQualityScores();
+            }, 500);
+        }
     }
 
     updateRateAndQualityDisplays() {
@@ -1921,12 +1927,12 @@ class InternetSpeedTest {
     }
 
     // Share Functionality Methods
-    openShareModal() {
+    async openShareModal() {
         if (!this.shareModal) return;
         
-        // Generate share text and link
+        // Save results to server and get share link
+        const shareLink = await this.saveAndGetShareLink();
         const shareText = this.generateShareText();
-        const shareLink = this.generateShareLink();
         
         // Update inputs
         if (this.shareTextInput) {
@@ -1969,8 +1975,42 @@ class InternetSpeedTest {
 Test your speed at: ${window.location.origin}`;
     }
 
+    async saveAndGetShareLink() {
+        try {
+            const result = {
+                downloadSpeed: this.downloadSpeed,
+                uploadSpeed: this.uploadSpeed,
+                ping: this.ping,
+                jitter: this.jitter,
+                isp: this.ispInfo,
+                location: this.serverLocation,
+                ipAddress: this.ipAddress
+            };
+            
+            const response = await fetch('/api/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(result)
+            });
+            
+            const data = await response.json();
+            if (data.success && data.id) {
+                return `${window.location.origin}/share/${data.id}`;
+            } else {
+                // Fallback to URL parameter method if save fails
+                return this.generateShareLink();
+            }
+        } catch (error) {
+            console.error('Error saving results:', error);
+            // Fallback to URL parameter method
+            return this.generateShareLink();
+        }
+    }
+
     generateShareLink() {
-        // Encode results in URL parameters
+        // Encode results in URL parameters (fallback method)
         const params = new URLSearchParams({
             d: this.downloadSpeed.toFixed(2),
             u: this.uploadSpeed.toFixed(2),
@@ -2019,27 +2059,61 @@ Test your speed at: ${window.location.origin}`;
         }, 2000);
     }
 
-    shareToTwitter() {
-        const text = encodeURIComponent(this.generateShareText());
+    async shareToTwitter() {
+        const shareLink = await this.saveAndGetShareLink();
+        const text = encodeURIComponent(this.generateShareText() + '\n' + shareLink);
         const url = `https://x.com/intent/tweet?text=${text}`;
         window.open(url, '_blank', 'width=550,height=420');
     }
 
-    shareToFacebook() {
-        const url = encodeURIComponent(this.generateShareLink());
+    async shareToFacebook() {
+        const shareLink = await this.saveAndGetShareLink();
+        const url = encodeURIComponent(shareLink);
         const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
         window.open(facebookUrl, '_blank', 'width=550,height=420');
     }
 
-    shareToWhatsApp() {
-        const text = encodeURIComponent(this.generateShareText());
+    async shareToWhatsApp() {
+        const shareLink = await this.saveAndGetShareLink();
+        const text = encodeURIComponent(this.generateShareText() + '\n' + shareLink);
         const url = `https://wa.me/?text=${text}`;
         window.open(url, '_blank');
     }
 
     // Load results from URL parameters (for shared links)
-    loadResultsFromURL() {
+    async loadResultsFromURL() {
         const params = new URLSearchParams(window.location.search);
+        
+        // Check if we're on a share page with an ID
+        const shareMatch = window.location.pathname.match(/\/share\/([a-zA-Z0-9]+)/);
+        if (shareMatch) {
+            const id = shareMatch[1];
+            try {
+                const response = await fetch(`/api/results/${id}`);
+                const result = await response.json();
+                
+                if (result && !result.error) {
+                    this.downloadSpeed = result.downloadSpeed || 0;
+                    this.uploadSpeed = result.uploadSpeed || 0;
+                    this.ping = result.ping || 0;
+                    this.jitter = result.jitter || 0;
+                    this.ispInfo = result.isp || 'Unknown';
+                    this.serverLocation = result.location || 'Unknown';
+                    this.ipAddress = result.ipAddress || '--';
+                    
+                    // Update displays
+                    this.updateResultDisplays();
+                    
+                    // Show results without animation
+                    this.showResults(true);
+                }
+            } catch (error) {
+                console.error('Error loading shared results:', error);
+            }
+            return;
+        }
+        
+        // Original URL parameter method (fallback)
         if (params.has('d') && params.has('u') && params.has('p')) {
             this.downloadSpeed = parseFloat(params.get('d')) || 0;
             this.uploadSpeed = parseFloat(params.get('u')) || 0;
@@ -2047,24 +2121,37 @@ Test your speed at: ${window.location.origin}`;
             this.jitter = parseInt(params.get('j')) || 0;
             
             // Update displays
-            if (this.downloadSpeedDisplay) {
-                this.downloadSpeedDisplay.textContent = this.downloadSpeed.toFixed(2);
-            }
-            if (this.uploadSpeedDisplay) {
-                this.uploadSpeedDisplay.textContent = this.uploadSpeed.toFixed(2);
-            }
-            if (this.pingDisplay) {
-                this.pingDisplay.textContent = this.ping;
-            }
-            if (this.jitterDisplay) {
-                this.jitterDisplay.textContent = this.jitter > 0 ? `${this.jitter} ms` : '0 ms';
-            }
+            this.updateResultDisplays();
             
-            // Show results
-            this.showResults();
+            // Show results without animation
+            this.showResults(true);
             
             // Clean URL
             window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+
+    updateResultDisplays() {
+        if (this.downloadSpeedDisplay) {
+            this.downloadSpeedDisplay.textContent = this.downloadSpeed.toFixed(2);
+        }
+        if (this.uploadSpeedDisplay) {
+            this.uploadSpeedDisplay.textContent = this.uploadSpeed.toFixed(2);
+        }
+        if (this.pingDisplay) {
+            this.pingDisplay.textContent = this.ping;
+        }
+        if (this.jitterDisplay) {
+            this.jitterDisplay.textContent = this.jitter > 0 ? `${this.jitter} ms` : '0 ms';
+        }
+        if (this.ispNameDisplay) {
+            this.ispNameDisplay.textContent = this.ispInfo;
+        }
+        if (this.serverLocationDisplay) {
+            this.serverLocationDisplay.textContent = this.serverLocation;
+        }
+        if (this.ipAddressDisplay) {
+            this.ipAddressDisplay.textContent = this.ipAddress;
         }
     }
 
