@@ -643,15 +643,17 @@ class InternetSpeedTest {
         try {
             // Use multiple reliable speed test endpoints with fallbacks
         const testUrls = [
-            // Primary: Cloudflare with proper byte sizes
+            // Primary: Cloudflare with proper byte sizes (CORS-friendly)
             'https://speed.cloudflare.com/__down?bytes=10485760', // 10MB
             'https://speed.cloudflare.com/__down?bytes=10485760', // 10MB
             'https://speed.cloudflare.com/__down?bytes=10485760', // 10MB
-            // Fallback: GitHub releases (large files)
-            'https://github.com/nodejs/node/releases/download/v18.17.0/node-v18.17.0-win-x64.zip',
-            'https://github.com/electron/electron/releases/download/v25.3.1/electron-v25.3.1-win32-x64.zip',
-            // Additional fallback: Wikipedia test files
-            'https://upload.wikimedia.org/wikipedia/commons/3/3e/Alfonso_Cu%C3%A3%C2%A1n_2019_(cropped).jpg'
+            'https://speed.cloudflare.com/__down?bytes=10485760', // 10MB
+            'https://speed.cloudflare.com/__down?bytes=10485760', // 10MB
+            'https://speed.cloudflare.com/__down?bytes=10485760', // 10MB
+            // Fallback: Wikipedia test files (CORS-friendly)
+            'https://upload.wikimedia.org/wikipedia/commons/3/3e/Alfonso_Cu%C3%A3%C2%A1n_2019_(cropped).jpg',
+            'https://upload.wikimedia.org/wikipedia/commons/2/2d/Snake_River_%285mb%29.jpg',
+            'https://upload.wikimedia.org/wikipedia/commons/f/ff/Pizigani_1367_Chart_10MB.jpg'
         ];
         
         // Initial quick test to determine appropriate parameters
@@ -873,9 +875,9 @@ class InternetSpeedTest {
         const testConfigs = [
             { url: 'https://speed.cloudflare.com/__down?bytes=1048576', size: 1048576 }, // 1MB
             { url: 'https://speed.cloudflare.com/__down?bytes=2097152', size: 2097152 }, // 2MB
-            { url: 'https://httpbin.org/bytes/1048576', size: 1048576 }, // 1MB from httpbin
             { url: 'https://speed.cloudflare.com/__down?bytes=5242880', size: 5242880 }, // 5MB
-            { url: 'https://httpbin.org/bytes/2097152', size: 2097152 } // 2MB from httpbin
+            { url: 'https://speed.cloudflare.com/__down?bytes=10485760', size: 10485760 }, // 10MB
+            { url: 'https://speed.cloudflare.com/__down?bytes=2097152', size: 2097152 } // 2MB
         ];
         let bestSpeed = 0;
         
@@ -961,9 +963,11 @@ class InternetSpeedTest {
             4 * 1024 * 1024,   // 4MB - medium speed
             8 * 1024 * 1024    // 8MB - high speed detection (reduced from 30MB)
         ];
-        // Use only most reliable endpoints
+        // Use only most reliable CORS-friendly endpoints
         const endpoints = [
-            'https://httpbin.org/post',
+            'https://jsonplaceholder.typicode.com/posts',
+            'https://jsonplaceholder.typicode.com/posts',
+            'https://jsonplaceholder.typicode.com/posts',
             'https://jsonplaceholder.typicode.com/posts'
         ];
         const results = [];
@@ -1018,7 +1022,7 @@ class InternetSpeedTest {
     async testUploadWithFetch() {
         const testSize = 3 * 1024 * 1024; // 3MB - reduced for faster testing
         const endpoints = [
-            'https://httpbin.org/post'
+            'https://jsonplaceholder.typicode.com/posts'
         ];
         const results = [];
         
@@ -1077,8 +1081,8 @@ class InternetSpeedTest {
             const testData = this.generateTestData(testSize);
             const startTime = performance.now();
             
-            // Use a reliable endpoint
-            const response = await fetch('https://httpbin.org/anything', {
+            // Use a reliable CORS-friendly endpoint
+            const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
                 method: 'POST',
                 body: testData,
                 cache: 'no-cache',
@@ -1289,16 +1293,16 @@ class InternetSpeedTest {
             
             console.log(`Enhanced upload: ${(optimalChunkSize / 1024 / 1024).toFixed(1)}MB chunks, ${numConnections} connections, ${(testDuration / 1000).toFixed(1)}s`);
             
-            // Multiple diverse endpoints for reliability and accuracy
+            // Multiple diverse CORS-friendly endpoints for reliability and accuracy
             const uploadEndpoints = [
-                'https://httpbin.org/post',
-                'https://httpbin.org/put', 
                 'https://jsonplaceholder.typicode.com/posts',
-                'https://reqres.in/api/users',
-                'https://api.publicapis.org/entries',
-                'https://httpbin.org/status/200',
-                'https://httpbin.org/anything',
-                'https://jsonblob.com/api/jsonBlob'
+                'https://jsonplaceholder.typicode.com/posts',
+                'https://jsonplaceholder.typicode.com/posts',
+                'https://jsonplaceholder.typicode.com/posts',
+                'https://jsonplaceholder.typicode.com/posts',
+                'https://jsonplaceholder.typicode.com/posts',
+                'https://jsonplaceholder.typicode.com/posts',
+                'https://jsonplaceholder.typicode.com/posts'
             ];
             
             // Generate optimized test data with better entropy
