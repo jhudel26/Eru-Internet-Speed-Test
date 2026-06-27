@@ -102,6 +102,9 @@ class InternetSpeedTest {
         this.shareFacebookBtn = document.getElementById('share-facebook');
         this.shareWhatsAppBtn = document.getElementById('share-whatsapp');
         this.shareSuccess = document.getElementById('share-success');
+        this.downloadImageBtn = document.getElementById('download-image-btn');
+        this.imagePreview = document.getElementById('image-preview');
+        this.imageLoading = document.getElementById('image-loading');
     }
 
     bindEvents() {
@@ -134,6 +137,9 @@ class InternetSpeedTest {
         }
         if (this.shareWhatsAppBtn) {
             this.shareWhatsAppBtn.addEventListener('click', () => this.shareToWhatsApp());
+        }
+        if (this.downloadImageBtn) {
+            this.downloadImageBtn.addEventListener('click', () => this.shareWithImage());
         }
         
         // Close modal on outside click
@@ -1931,24 +1937,244 @@ class InternetSpeedTest {
     }
 
     // Share Functionality Methods
+    
+    async generateResultImage() {
+        // Create canvas for image generation
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas dimensions (similar to speedtest.net card)
+        canvas.width = 800;
+        canvas.height = 450;
+        
+        // Background gradient with more vibrant colors
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        gradient.addColorStop(0, '#0f172a'); // Dark blue
+        gradient.addColorStop(0.3, '#1e3a5f'); // Medium blue
+        gradient.addColorStop(0.7, '#1e3a5f'); // Medium blue
+        gradient.addColorStop(1, '#0f172a'); // Dark blue
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Add subtle grid pattern
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.1)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < canvas.width; i += 40) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, canvas.height);
+            ctx.stroke();
+        }
+        for (let i = 0; i < canvas.height; i += 40) {
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(canvas.width, i);
+            ctx.stroke();
+        }
+        
+        // Add header section with gradient
+        const headerGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+        headerGradient.addColorStop(0, '#3b82f6');
+        headerGradient.addColorStop(1, '#8b5cf6');
+        ctx.fillStyle = headerGradient;
+        ctx.fillRect(0, 0, canvas.width, 70);
+        
+        // Add logo/title with shadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 28px Arial';
+        ctx.fillText('⚡ Eru Speed Test', 20, 48);
+        ctx.shadowBlur = 0;
+        
+        // Add timestamp
+        ctx.font = '14px Arial';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        const timestamp = new Date().toLocaleString();
+        ctx.fillText(timestamp, canvas.width - 220, 45);
+        
+        // Add ISP info with icons
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '16px Arial';
+        ctx.fillText(`🌐 ISP: ${this.ispInfo}`, 20, 100);
+        ctx.fillText(`📍 Server: ${this.serverLocation}`, 20, 125);
+        ctx.fillText(`🖥️ IP: ${this.ipAddress}`, 20, 150);
+        
+        // Draw speed meters with enhanced design
+        this.drawSpeedMeter(ctx, 200, 220, this.downloadSpeed, 'DOWNLOAD', '#3b82f6');
+        this.drawSpeedMeter(ctx, 600, 220, this.uploadSpeed, 'UPLOAD', '#8b5cf6');
+        
+        // Add ping and jitter info in a box
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.fillRect(150, 320, 200, 80);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.strokeRect(150, 320, 200, 80);
+        
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '18px Arial';
+        ctx.fillText(`⚡ Ping: ${this.ping} ms`, 170, 350);
+        ctx.fillText(`📊 Jitter: ${this.jitter} ms`, 170, 380);
+        
+        // Add quality assessment badge
+        const quality = this.getQualityScore(this.downloadSpeed, this.uploadSpeed);
+        ctx.fillStyle = quality.color;
+        this.drawRoundedRect(ctx, 450, 320, 200, 80, 10);
+        ctx.fill();
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Connection Quality`, 550, 355);
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText(quality.label, 550, 385);
+        ctx.textAlign = 'left';
+        
+        // Add footer with styling
+        ctx.fillStyle = 'rgba(100, 116, 139, 0.8)';
+        ctx.font = '14px Arial';
+        ctx.fillText('Test your speed at: ' + window.location.origin, 20, 430);
+        
+        // Convert to data URL
+        return canvas.toDataURL('image/png');
+    }
+    
+    drawSpeedMeter(ctx, x, y, speed, label, color) {
+        const radius = 70;
+        const centerX = x;
+        const centerY = y;
+        
+        // Draw meter background with glow effect
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0.75 * Math.PI, 2.25 * Math.PI);
+        ctx.strokeStyle = 'rgba(51, 65, 85, 0.5)';
+        ctx.lineWidth = 15;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        
+        // Draw meter progress based on speed (assuming max 1000 Mbps)
+        const maxSpeed = 1000;
+        const progress = Math.min(speed / maxSpeed, 1);
+        const endAngle = 0.75 * Math.PI + (progress * 1.5 * Math.PI);
+        
+        // Add gradient to progress bar
+        const progressGradient = ctx.createLinearGradient(
+            centerX + radius * Math.cos(0.75 * Math.PI),
+            centerY + radius * Math.sin(0.75 * Math.PI),
+            centerX + radius * Math.cos(endAngle),
+            centerY + radius * Math.sin(endAngle)
+        );
+        progressGradient.addColorStop(0, color);
+        progressGradient.addColorStop(1, this.lightenColor(color, 30));
+        
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0.75 * Math.PI, endAngle);
+        ctx.strokeStyle = progressGradient;
+        ctx.lineWidth = 15;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        
+        // Draw speed value with enhanced styling
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 36px Arial';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 5;
+        ctx.fillText(speed.toFixed(1), centerX, centerY + 12);
+        ctx.shadowBlur = 0;
+        
+        // Draw label
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText(label, centerX, centerY + 40);
+        
+        // Draw Mbps
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 12px Arial';
+        ctx.fillText('Mbps', centerX, centerY - 30);
+        
+        ctx.textAlign = 'left'; // Reset text alignment
+    }
+    
+    lightenColor(color, percent) {
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = (num >> 16) + amt;
+        const G = (num >> 8 & 0x00FF) + amt;
+        const B = (num & 0x0000FF) + amt;
+        return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 + 
+            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 + 
+            (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+    }
+    
+    drawRoundedRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+    }
+    
     openShareModal() {
         if (!this.shareModal) return;
         
-        // Generate share text and link
+        // Reset image preview state
+        if (this.imagePreview) {
+            this.imagePreview.classList.add('hidden');
+            this.imagePreview.src = '';
+        }
+        if (this.imageLoading) {
+            this.imageLoading.classList.remove('hidden');
+        }
+        
+        // Generate share text, link, and image
         const shareText = this.generateShareText();
         const shareLink = this.generateShareLink();
         
-        // Update inputs
-        if (this.shareTextInput) {
-            this.shareTextInput.value = shareText;
-        }
-        if (this.shareLinkInput) {
-            this.shareLinkInput.value = shareLink;
-        }
-        
-        // Show modal
-        this.shareModal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        // Generate and store the result image
+        this.generateResultImage().then(imageDataUrl => {
+            this.resultImageData = imageDataUrl;
+            
+            // Update inputs
+            if (this.shareTextInput) {
+                this.shareTextInput.value = shareText;
+            }
+            if (this.shareLinkInput) {
+                this.shareLinkInput.value = shareLink;
+            }
+            
+            // Update image preview
+            if (this.imagePreview) {
+                this.imagePreview.src = imageDataUrl;
+                this.imagePreview.classList.remove('hidden');
+            }
+            if (this.imageLoading) {
+                this.imageLoading.classList.add('hidden');
+            }
+            
+            // Show modal
+            this.shareModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        });
+    }
+    
+    getQualityScore(download, upload) {
+        const avgSpeed = (download + upload) / 2;
+        if (avgSpeed >= 100) return { label: 'Excellent', color: '#22c55e' };
+        if (avgSpeed >= 50) return { label: 'Good', color: '#3b82f6' };
+        if (avgSpeed >= 25) return { label: 'Fair', color: '#f59e0b' };
+        if (avgSpeed >= 10) return { label: 'Poor', color: '#f97316' };
+        return { label: 'Very Poor', color: '#ef4444' };
     }
 
     closeShareModalFunc() {
@@ -1958,6 +2184,14 @@ class InternetSpeedTest {
         if (this.shareSuccess) {
             this.shareSuccess.classList.add('hidden');
         }
+        // Reset image preview
+        if (this.imagePreview) {
+            this.imagePreview.classList.add('hidden');
+            this.imagePreview.src = '';
+        }
+        if (this.imageLoading) {
+            this.imageLoading.classList.remove('hidden');
+        }
     }
 
     generateShareText() {
@@ -1965,18 +2199,17 @@ class InternetSpeedTest {
         const downloadRate = (this.downloadSpeed / 8).toFixed(2);
         const uploadRate = (this.uploadSpeed / 8).toFixed(2);
         
-        return `🚀 Internet Speed Test Results
+        return `🚀 My Internet Speed Test Results
 
-📥 Download: ${this.downloadSpeed.toFixed(2)} Mbps (${downloadRate} MB/s)
-📤 Upload: ${this.uploadSpeed.toFixed(2)} Mbps (${uploadRate} MB/s)
+📥 Download: ${this.downloadSpeed.toFixed(2)} Mbps
+📤 Upload: ${this.uploadSpeed.toFixed(2)} Mbps  
 ⚡ Ping: ${this.ping} ms
 📊 Jitter: ${this.jitter} ms
 
 🌐 ISP: ${this.ispInfo}
 📍 Server: ${this.serverLocation}
-🕐 Tested: ${timestamp}
 
-Test your speed at: ${window.location.origin}`;
+Test your speed: ${window.location.origin}`;
     }
 
     generateShareLink() {
@@ -2045,6 +2278,32 @@ Test your speed at: ${window.location.origin}`;
         const text = encodeURIComponent(this.generateShareText());
         const url = `https://wa.me/?text=${text}`;
         window.open(url, '_blank');
+    }
+    
+    async shareWithImage() {
+        if (!this.resultImageData) {
+            alert('Please generate the image first by opening the share modal');
+            return;
+        }
+        
+        // Create a download link for the image
+        const link = document.createElement('a');
+        link.download = `speedtest-result-${Date.now()}.png`;
+        link.href = this.resultImageData;
+        link.click();
+        
+        // Also copy to clipboard if supported
+        try {
+            const response = await fetch(this.resultImageData);
+            const blob = await response.blob();
+            await navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': blob })
+            ]);
+            alert('Image saved and copied to clipboard! You can now paste it in social media.');
+        } catch (err) {
+            console.log('Clipboard API not supported or failed:', err);
+            alert('Image saved! You can now upload it to social media.');
+        }
     }
 
     // Load results from URL parameters (for shared links)
