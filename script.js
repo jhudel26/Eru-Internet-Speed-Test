@@ -1219,7 +1219,7 @@ class InternetSpeedTest {
             });
             
             // Configure XHR for optimal upload testing with reasonable timeout
-            xhr.timeout = 15000; // 15 second timeout (reduced from 30s for faster testing)
+            xhr.timeout = 30000; // 30 second timeout for larger chunks
             xhr.open('POST', endpoint);
             
             // Set headers to prevent caching and ensure proper handling
@@ -1249,12 +1249,12 @@ class InternetSpeedTest {
     }
 
     calculateOptimalChunkSize(speed) {
-        // Adaptive chunk sizing for optimal throughput
-        if (speed < 1) return 2 * 1024 * 1024; // 2MB for slow
-        if (speed < 10) return 5 * 1024 * 1024; // 5MB for medium
-        if (speed < 50) return 10 * 1024 * 1024; // 10MB for fast
-        if (speed < 200) return 15 * 1024 * 1024; // 15MB for very fast
-        return 25 * 1024 * 1024; // 25MB for ultra-fast (max)
+        // Adaptive chunk sizing for optimal throughput - reduced for CORS-friendly endpoints
+        if (speed < 1) return 1 * 1024 * 1024; // 1MB for slow
+        if (speed < 10) return 2 * 1024 * 1024; // 2MB for medium
+        if (speed < 50) return 3 * 1024 * 1024; // 3MB for fast
+        if (speed < 200) return 4 * 1024 * 1024; // 4MB for very fast
+        return 5 * 1024 * 1024; // 5MB for ultra-fast (max)
     }
 
     generateTestData(size) {
@@ -1420,7 +1420,13 @@ class InternetSpeedTest {
             
             console.log(`Enhanced upload: ${(totalResultBytes / 1024 / 1024).toFixed(2)}MB in ${durationSeconds.toFixed(2)}s = ${finalSpeed.toFixed(2)} Mbps (${totalRequests} requests)`);
             
-            return Math.max(1, finalSpeed); // Minimum 1 Mbps to show some result
+            // If enhanced test failed (0 bytes or 0 requests), fall back to quick test result
+            if (totalResultBytes === 0 || totalRequests === 0) {
+                console.log('Enhanced upload test failed, using quick test result:', quickSpeed, 'Mbps');
+                return quickSpeed;
+            }
+            
+            return Math.max(quickSpeed * 0.8, finalSpeed); // Use 80% of quick speed minimum
         } catch (error) {
             if (error.name !== 'AbortError') {
                 console.error('Upload test error:', error);
@@ -1429,28 +1435,28 @@ class InternetSpeedTest {
         }
     }
     
-    // Enhanced upload calculation methods optimized for high-speed connections (400+ Mbps)
+    // Enhanced upload calculation methods optimized for CORS-friendly endpoints
     calculateOptimalUploadChunkSize(speedMbps) {
-        // Significantly increased chunk sizes for high-speed connections
+        // Reduced chunk sizes for CORS-friendly endpoints with rate limits
         if (speedMbps < 2) return 512 * 1024; // 512KB for very slow
         if (speedMbps < 5) return 1 * 1024 * 1024; // 1MB for slow
         if (speedMbps < 10) return 2 * 1024 * 1024; // 2MB for medium
-        if (speedMbps < 25) return 5 * 1024 * 1024; // 5MB for fast
-        if (speedMbps < 50) return 10 * 1024 * 1024; // 10MB for very fast
-        if (speedMbps < 100) return 20 * 1024 * 1024; // 20MB for ultra-fast
-        if (speedMbps < 200) return 30 * 1024 * 1024; // 30MB for gigabit
-        if (speedMbps < 400) return 40 * 1024 * 1024; // 40MB for multi-gigabit
-        return 50 * 1024 * 1024; // 50MB for extreme speeds (max)
+        if (speedMbps < 25) return 3 * 1024 * 1024; // 3MB for fast
+        if (speedMbps < 50) return 4 * 1024 * 1024; // 4MB for very fast
+        if (speedMbps < 100) return 5 * 1024 * 1024; // 5MB for ultra-fast
+        if (speedMbps < 200) return 6 * 1024 * 1024; // 6MB for gigabit
+        if (speedMbps < 400) return 8 * 1024 * 1024; // 8MB for multi-gigabit
+        return 10 * 1024 * 1024; // 10MB for extreme speeds (max)
     }
     
     calculateOptimalUploadDuration(speedMbps) {
-        // Longer duration for more accurate measurements, especially for high speeds
-        if (speedMbps < 5) return 15000; // 15s for slow connections
-        if (speedMbps < 25) return 12000; // 12s for medium
-        if (speedMbps < 100) return 10000; // 10s for fast
-        if (speedMbps < 200) return 12000; // 12s for very fast (need more time to saturate)
-        if (speedMbps < 400) return 15000; // 15s for gigabit (need even more time)
-        return 18000; // 18s for multi-gigabit (maximum accuracy)
+        // Reduced duration for CORS-friendly endpoints with rate limits
+        if (speedMbps < 5) return 8000; // 8s for slow connections
+        if (speedMbps < 25) return 10000; // 10s for medium
+        if (speedMbps < 100) return 12000; // 12s for fast
+        if (speedMbps < 200) return 15000; // 15s for very fast
+        if (speedMbps < 400) return 15000; // 15s for gigabit
+        return 15000; // 15s for multi-gigabit (maximum)
     }
     
     calculateOptimalUploadConnections(speedMbps) {
