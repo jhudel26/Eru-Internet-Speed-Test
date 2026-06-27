@@ -220,35 +220,6 @@ async function handleSharedResult(req, res, resultId, url) {
   }
 }
 
-async function handleAPIRequest(req, res) {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = url.pathname;
-  
-  // Check if Redis is available and connected
-  if (!redis || !redisConnected) {
-    res.writeHead(503);
-    res.end(JSON.stringify({ error: 'Redis connection not available' }));
-    return;
-  }
-  
-  try {
-    if (pathname === '/api/upload-image' && req.method === 'POST') {
-      await handleImageUpload(req, res);
-    } else if (pathname.startsWith('/api/image/') && req.method === 'GET') {
-      await handleImageGet(req, res, url);
-    } else if (pathname === '/api/share-data' && req.method === 'GET') {
-      await handleShareData(req, res, url);
-    } else {
-      res.writeHead(404);
-      res.end('API endpoint not found');
-    }
-  } catch (error) {
-    console.error('API Error:', error);
-    res.writeHead(500);
-    res.end(JSON.stringify({ error: 'Internal server error' }));
-  }
-}
-
 async function handleImageUpload(req, res) {
   let body = '';
   req.on('data', chunk => {
@@ -359,4 +330,3 @@ async function handleShareData(req, res, url) {
     res.end(JSON.stringify({ error: 'Failed to retrieve share data' }));
   }
 }
-
