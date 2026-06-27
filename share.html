@@ -6,17 +6,27 @@
     <meta name="description" content="Download: {{DOWNLOAD_SPEED}} Mbps | Upload: {{UPLOAD_SPEED}} Mbps | Ping: {{PING}} ms">
     
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="My Internet Speed Result" />
-    <meta property="og:description" content="Download: {{DOWNLOAD_SPEED}} Mbps | Upload: {{UPLOAD_SPEED}} Mbps | Ping: {{PING}} ms" />
+    <meta property="og:title" content="Eru Speed Test - {{DOWNLOAD_SPEED}} Mbps Download" />
+    <meta property="og:description" content="Download: {{DOWNLOAD_SPEED}} Mbps | Upload: {{UPLOAD_SPEED}} Mbps | Ping: {{PING}} ms | ISP: {{ISP}}" />
     <meta property="og:image" content="{{OG_IMAGE_URL}}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Speed test result showing {{DOWNLOAD_SPEED}} Mbps download, {{UPLOAD_SPEED}} Mbps upload, and {{PING}} ms ping" />
     <meta property="og:url" content="{{BASE_URL}}/share/{{ID}}" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Eru Speed Test" />
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="My Internet Speed Result" />
-    <meta name="twitter:description" content="Download: {{DOWNLOAD_SPEED}} Mbps | Upload: {{UPLOAD_SPEED}} Mbps | Ping: {{PING}} ms" />
+    <meta name="twitter:title" content="Eru Speed Test - {{DOWNLOAD_SPEED}} Mbps Download" />
+    <meta name="twitter:description" content="Download: {{DOWNLOAD_SPEED}} Mbps | Upload: {{UPLOAD_SPEED}} Mbps | Ping: {{PING}} ms | ISP: {{ISP}}" />
     <meta name="twitter:image" content="{{OG_IMAGE_URL}}" />
+    <meta name="twitter:image:alt" content="Speed test result showing {{DOWNLOAD_SPEED}} Mbps download, {{UPLOAD_SPEED}} Mbps upload, and {{PING}} ms ping" />
+    
+    <!-- Additional Meta Tags -->
+    <meta name="twitter:site" content="@eruspeedtest" />
+    <meta name="twitter:creator" content="@eruspeedtest" />
+    <link rel="canonical" href="{{BASE_URL}}/share/{{ID}}" />
     
     <title>Eru Speed Test - Result</title>
     <script src="https://cdn.tailwindcss.com"></script>
